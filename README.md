@@ -54,7 +54,7 @@ A comprehensive security monitoring solution for SharePoint Server with specific
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/sharepoint-security-monitor.git
+git clone https://github.com/paolokappa/SharePointSecurityMonitor.git
 ```
 
 2. Copy to your SharePoint server at `C:\GOLINE`
