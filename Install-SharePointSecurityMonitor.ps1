@@ -80,9 +80,12 @@ try {
     Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue
     if (Get-PSSnapin -Name Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue) {
         $sharePointInstalled = $true
-        Write-Host "  [✓] SharePoint PowerShell detected" -ForegroundColor Green
+        Write-Host "  [OK] SharePoint PowerShell detected" -ForegroundColor Green
     }
-} catch {}
+}
+catch {
+    # SharePoint not installed
+}
 
 if (-not $sharePointInstalled) {
     Write-Host "  [!] SharePoint PowerShell not detected - some features will be limited" -ForegroundColor Yellow
@@ -125,7 +128,7 @@ Write-Host "`n[1/9] Cleaning up existing installation..." -ForegroundColor Yello
 
 $tasksToRemove = @(
     "SharePoint Security Monitor",
-    "SharePoint Security Alerts", 
+    "SharePoint Security Alerts",
     "SharePoint Rapid Security Check",
     "SharePoint Quick Security Check",
     "SharePoint Daily Security Report"
@@ -174,11 +177,20 @@ if (-not $monitoringScript) {
     # If script files don't exist, create them inline
     Write-Host "  Creating SharePoint-Monitor.ps1..." -ForegroundColor Gray
     
-    # [The full monitoring script would be here - using placeholder for brevity]
-    $monitoringScript = @'
-# SharePoint Security Monitor - Main Script
-# [Full script content from previous artifact]
-'@
+    # Create the monitoring script content
+    $monitoringScript = '# SharePoint Security Monitor - Main Script
+# This is a placeholder - replace with full monitoring script content
+param(
+    [string]$AlertEmail = "' + $AlertEmail + '",
+    [string]$SMTPServer = "' + $SMTPServer + '",
+    [string]$FromEmail = "' + $FromEmail + '",
+    [switch]$SendDailySummary = $false,
+    [switch]$ForceAlert = $false
+)
+
+Write-Host "SharePoint Security Monitor - Running security scan..." -ForegroundColor Yellow
+Write-Host "This is a placeholder script. Replace with full monitoring logic." -ForegroundColor Red
+'
 }
 
 # Update configuration in scripts
@@ -193,141 +205,140 @@ $monitoringScript | Out-File "$InstallPath\SharePoint-Monitor.ps1" -Force -Encod
 Write-Host "  Creating auxiliary scripts..." -ForegroundColor Gray
 
 # Test Email Script
-@"
-# Test Email Configuration
+$testEmailContent = '# Test Email Configuration
 param(
-    [string]`$To = "$AlertEmail",
-    [string]`$SMTPServer = "$SMTPServer"
+    [string]$To = "' + $AlertEmail + '",
+    [string]$SMTPServer = "' + $SMTPServer + '"
 )
 
 Write-Host "Testing email configuration..." -ForegroundColor Yellow
 
 try {
-    `$testBody = @"
+    $testBody = @"
 <html>
-<body style='font-family: Arial, sans-serif;'>
-<h2 style='color: #4caf50;'>SharePoint Security Monitoring - Test Email</h2>
+<body style=''font-family: Arial, sans-serif;''>
+<h2 style=''color: #4caf50;''>SharePoint Security Monitoring - Test Email</h2>
 <p>This is a test email to confirm that security alerts are properly configured.</p>
 <p><strong>Configuration Details:</strong></p>
 <ul>
-    <li>Server: `$env:COMPUTERNAME</li>
-    <li>SMTP Server: `$SMTPServer</li>
-    <li>Alert Recipient: `$To</li>
-    <li>Time: `$(Get-Date)</li>
-    <li>Version: $ScriptVersion</li>
+    <li>Server: $env:COMPUTERNAME</li>
+    <li>SMTP Server: $SMTPServer</li>
+    <li>Alert Recipient: $To</li>
+    <li>Time: $(Get-Date)</li>
+    <li>Version: ' + $ScriptVersion + '</li>
 </ul>
 <p>If you receive this email, the monitoring system is properly configured to send alerts.</p>
 </body>
 </html>
 "@
 
-    Send-MailMessage -To `$To ``
-        -From "$FromEmail" ``
-        -Subject "[TEST] SharePoint Security Monitoring Active" ``
-        -Body `$testBody ``
-        -BodyAsHtml ``
-        -SmtpServer `$SMTPServer
+    Send-MailMessage -To $To `
+        -From "' + $FromEmail + '" `
+        -Subject "[TEST] SharePoint Security Monitoring Active" `
+        -Body $testBody `
+        -BodyAsHtml `
+        -SmtpServer $SMTPServer
     
-    Write-Host "SUCCESS: Test email sent to `$To" -ForegroundColor Green
+    Write-Host "SUCCESS: Test email sent to $To" -ForegroundColor Green
     Write-Host "Check your inbox to confirm receipt." -ForegroundColor Cyan
 } catch {
     Write-Host "ERROR: Failed to send test email" -ForegroundColor Red
-    Write-Host "Error details: `$_" -ForegroundColor Red
-}
-"@ | Out-File "$InstallPath\Test-Email.ps1" -Force -Encoding UTF8
+    Write-Host "Error details: $_" -ForegroundColor Red
+}'
+
+$testEmailContent | Out-File "$InstallPath\Test-Email.ps1" -Force -Encoding UTF8
 
 # Initialize Baseline Script
-@"
-# Initialize Security Baseline
+$baselineContent = '# Initialize Security Baseline
 Write-Host "Initializing SharePoint security baseline..." -ForegroundColor Yellow
 
-`$BaselinePath = "$InstallPath\SharePoint_Monitoring\Baselines"
-New-Item -ItemType Directory -Path `$BaselinePath -Force | Out-Null
+$BaselinePath = "' + $InstallPath + '\SharePoint_Monitoring\Baselines"
+New-Item -ItemType Directory -Path $BaselinePath -Force | Out-Null
 
 # Create file baseline
 Write-Host "Creating file baseline..." -ForegroundColor Cyan
-`$WebPaths = @(
+$WebPaths = @(
     "C:\inetpub\wwwroot\wss\VirtualDirectories",
     "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\16"
 )
 
-`$FileBaseline = @{}
-foreach (`$path in `$WebPaths) {
-    if (Test-Path `$path) {
-        Get-ChildItem -Path `$path -Recurse -Include "*.aspx","*.asmx","*.ashx" -ErrorAction SilentlyContinue | ForEach-Object {
-            `$hash = (Get-FileHash `$_.FullName -Algorithm SHA256).Hash
-            `$FileBaseline[`$_.FullName] = @{
-                Hash = `$hash
-                Size = `$_.Length
-                Modified = `$_.LastWriteTime
-                Created = `$_.CreationTime
+$FileBaseline = @{}
+foreach ($path in $WebPaths) {
+    if (Test-Path $path) {
+        Get-ChildItem -Path $path -Recurse -Include "*.aspx","*.asmx","*.ashx" -ErrorAction SilentlyContinue | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            $FileBaseline[$_.FullName] = @{
+                Hash = $hash
+                Size = $_.Length
+                Modified = $_.LastWriteTime
+                Created = $_.CreationTime
             }
         }
     }
 }
 
-`$FileBaseline | Export-Clixml "`$BaselinePath\file_baseline_latest.xml"
-Write-Host "File baseline created with `$(`$FileBaseline.Count) files" -ForegroundColor Green
+$FileBaseline | Export-Clixml "$BaselinePath\file_baseline_latest.xml"
+Write-Host "File baseline created with $($FileBaseline.Count) files" -ForegroundColor Green
 
 # Create service baseline
 Write-Host "Creating service baseline..." -ForegroundColor Cyan
-Get-Service | Select-Object Name, DisplayName, Status, StartType | Export-Clixml "`$BaselinePath\service_baseline.xml"
+Get-Service | Select-Object Name, DisplayName, Status, StartType | Export-Clixml "$BaselinePath\service_baseline.xml"
 
 # Create user baseline
 Write-Host "Creating user baseline..." -ForegroundColor Cyan
-Get-LocalUser | Select-Object Name, Enabled, PasswordLastSet | Export-Clixml "`$BaselinePath\user_baseline.xml"
-Get-LocalGroupMember -Group "Administrators" | Export-Clixml "`$BaselinePath\admin_baseline.xml"
+Get-LocalUser | Select-Object Name, Enabled, PasswordLastSet | Export-Clixml "$BaselinePath\user_baseline.xml"
+Get-LocalGroupMember -Group "Administrators" | Export-Clixml "$BaselinePath\admin_baseline.xml"
 
-Write-Host "Baseline initialization complete!" -ForegroundColor Green
-"@ | Out-File "$InstallPath\Initialize-Baseline.ps1" -Force -Encoding UTF8
+Write-Host "Baseline initialization complete!" -ForegroundColor Green'
+
+$baselineContent | Out-File "$InstallPath\Initialize-Baseline.ps1" -Force -Encoding UTF8
 
 # Management Console Script
-@"
-# SharePoint Security Monitoring Management Console
+$managementContent = '# SharePoint Security Monitoring Management Console
 param(
-    [string]`$Action = "Help"
+    [string]$Action = "Help"
 )
 
-`$InstallPath = "$InstallPath"
-`$config = Import-Clixml "`$InstallPath\config.xml"
+$InstallPath = "' + $InstallPath + '"
+$config = Import-Clixml "$InstallPath\config.xml"
 
 Write-Host @"
 =========================================
 SharePoint Security Monitoring Management
-Version: `$(`$config.Version)
+Version: $($config.Version)
 =========================================
 "@ -ForegroundColor Cyan
 
-switch (`$Action.ToLower()) {
+switch ($Action.ToLower()) {
     "status" {
         Write-Host "`nChecking monitoring status..." -ForegroundColor Yellow
         
         # Check scheduled tasks
-        `$tasks = @("SharePoint Security Monitor", "SharePoint Daily Security Report")
-        foreach (`$taskName in `$tasks) {
-            `$task = Get-ScheduledTask -TaskName `$taskName -ErrorAction SilentlyContinue
-            if (`$task) {
-                `$info = Get-ScheduledTaskInfo -TaskName `$taskName
-                Write-Host "`n`$taskName" -ForegroundColor White
-                Write-Host "  State: `$(`$task.State)" -ForegroundColor `$(if (`$task.State -eq "Ready") {"Green"} else {"Yellow"})
-                Write-Host "  Last Run: `$(`$info.LastRunTime)"
-                Write-Host "  Next Run: `$(`$info.NextRunTime)"
-                Write-Host "  Last Result: `$(`$info.LastTaskResult)"
+        $tasks = @("SharePoint Security Monitor", "SharePoint Daily Security Report")
+        foreach ($taskName in $tasks) {
+            $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+            if ($task) {
+                $info = Get-ScheduledTaskInfo -TaskName $taskName
+                Write-Host "`n$taskName" -ForegroundColor White
+                Write-Host "  State: $($task.State)" -ForegroundColor $(if ($task.State -eq "Ready") {"Green"} else {"Yellow"})
+                Write-Host "  Last Run: $($info.LastRunTime)"
+                Write-Host "  Next Run: $($info.NextRunTime)"
+                Write-Host "  Last Result: $($info.LastTaskResult)"
             } else {
-                Write-Host "`n`$taskName" -ForegroundColor White
+                Write-Host "`n$taskName" -ForegroundColor White
                 Write-Host "  State: Not Found" -ForegroundColor Red
             }
         }
         
         # Check recent logs
         Write-Host "`nRecent monitoring activity:" -ForegroundColor Yellow
-        `$logPath = "`$InstallPath\SharePoint_Monitoring\Logs"
-        `$recentLogs = Get-ChildItem `$logPath -Filter "*.log" -ErrorAction SilentlyContinue | 
+        $logPath = "$InstallPath\SharePoint_Monitoring\Logs"
+        $recentLogs = Get-ChildItem $logPath -Filter "*.log" -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending | Select-Object -First 5
         
-        if (`$recentLogs) {
-            `$recentLogs | ForEach-Object {
-                Write-Host "  `$(`$_.Name) - `$(`$_.LastWriteTime)" -ForegroundColor Gray
+        if ($recentLogs) {
+            $recentLogs | ForEach-Object {
+                Write-Host "  $($_.Name) - $($_.LastWriteTime)" -ForegroundColor Gray
             }
         } else {
             Write-Host "  No logs found" -ForegroundColor Yellow
@@ -335,31 +346,31 @@ switch (`$Action.ToLower()) {
         
         # Configuration
         Write-Host "`nConfiguration:" -ForegroundColor Yellow
-        Write-Host "  Alert Email: `$(`$config.AlertEmail)" -ForegroundColor Gray
-        Write-Host "  SMTP Server: `$(`$config.SMTPServer)" -ForegroundColor Gray
-        Write-Host "  Install Date: `$(`$config.InstallDate)" -ForegroundColor Gray
+        Write-Host "  Alert Email: $($config.AlertEmail)" -ForegroundColor Gray
+        Write-Host "  SMTP Server: $($config.SMTPServer)" -ForegroundColor Gray
+        Write-Host "  Install Date: $($config.InstallDate)" -ForegroundColor Gray
     }
     
     "test" {
         Write-Host "`nRunning monitoring test..." -ForegroundColor Yellow
-        & "`$InstallPath\SharePoint-Monitor.ps1" -ForceAlert
+        & "$InstallPath\SharePoint-Monitor.ps1" -ForceAlert
     }
     
     "email" {
         Write-Host "`nTesting email configuration..." -ForegroundColor Yellow
-        & "`$InstallPath\Test-Email.ps1"
+        & "$InstallPath\Test-Email.ps1"
     }
     
     "baseline" {
         Write-Host "`nReinitializing baseline..." -ForegroundColor Yellow
-        & "`$InstallPath\Initialize-Baseline.ps1"
+        & "$InstallPath\Initialize-Baseline.ps1"
     }
     
     "logs" {
         Write-Host "`nShowing recent alerts from logs..." -ForegroundColor Yellow
-        `$todayLog = "`$InstallPath\SharePoint_Monitoring\Logs\SecurityMonitor_`$(Get-Date -Format 'yyyyMMdd').log"
-        if (Test-Path `$todayLog) {
-            Get-Content `$todayLog | Where-Object {`$_ -match "\[ALERT\]|\[WARNING\]"} | Select-Object -Last 20
+        $todayLog = "$InstallPath\SharePoint_Monitoring\Logs\SecurityMonitor_$(Get-Date -Format ''yyyyMMdd'').log"
+        if (Test-Path $todayLog) {
+            Get-Content $todayLog | Where-Object {$_ -match "\[ALERT\]|\[WARNING\]"} | Select-Object -Last 20
         } else {
             Write-Host "No log file found for today" -ForegroundColor Yellow
         }
@@ -367,12 +378,12 @@ switch (`$Action.ToLower()) {
     
     "report" {
         Write-Host "`nOpening latest report..." -ForegroundColor Yellow
-        `$reportPath = "`$InstallPath\SharePoint_Monitoring\Reports"
-        `$latestReport = Get-ChildItem `$reportPath -Filter "*.html" -ErrorAction SilentlyContinue | 
+        $reportPath = "$InstallPath\SharePoint_Monitoring\Reports"
+        $latestReport = Get-ChildItem $reportPath -Filter "*.html" -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
         
-        if (`$latestReport) {
-            Start-Process `$latestReport.FullName
+        if ($latestReport) {
+            Start-Process $latestReport.FullName
         } else {
             Write-Host "No reports found" -ForegroundColor Yellow
         }
@@ -382,10 +393,10 @@ switch (`$Action.ToLower()) {
         Write-Host "`nChecking for updates..." -ForegroundColor Yellow
         # Check GitHub for updates
         try {
-            `$latestVersion = (Invoke-WebRequest -Uri "https://api.github.com/repos/yourusername/sharepoint-security-monitor/releases/latest" -UseBasicParsing | ConvertFrom-Json).tag_name
-            if (`$latestVersion -gt `$config.Version) {
-                Write-Host "New version available: `$latestVersion" -ForegroundColor Green
-                Write-Host "Download from: https://github.com/yourusername/sharepoint-security-monitor/releases" -ForegroundColor Cyan
+            $latestVersion = (Invoke-WebRequest -Uri "https://api.github.com/repos/paolokappa/SharePointSecurityMonitor/releases/latest" -UseBasicParsing | ConvertFrom-Json).tag_name
+            if ($latestVersion -gt $config.Version) {
+                Write-Host "New version available: $latestVersion" -ForegroundColor Green
+                Write-Host "Download from: https://github.com/paolokappa/SharePointSecurityMonitor/releases" -ForegroundColor Cyan
             } else {
                 Write-Host "You have the latest version" -ForegroundColor Green
             }
@@ -408,8 +419,9 @@ Available commands:
         
 "@ -ForegroundColor Cyan
     }
-}
-"@ | Out-File "$InstallPath\Manage-Monitoring.ps1" -Force -Encoding UTF8
+}'
+
+$managementContent | Out-File "$InstallPath\Manage-Monitoring.ps1" -Force -Encoding UTF8
 
 Write-Host "  All scripts created successfully" -ForegroundColor Green
 
@@ -463,27 +475,27 @@ try {
 # 8. Create uninstall script
 Write-Host "`n[8/9] Creating uninstall script..." -ForegroundColor Yellow
 
-@"
-# Uninstall SharePoint Security Monitor
+$uninstallContent = '# Uninstall SharePoint Security Monitor
 Write-Host "Uninstalling SharePoint Security Monitor..." -ForegroundColor Yellow
 
 # Remove scheduled tasks
 @("SharePoint Security Monitor", "SharePoint Daily Security Report") | ForEach-Object {
-    if (Get-ScheduledTask -TaskName `$_ -ErrorAction SilentlyContinue) {
-        Unregister-ScheduledTask -TaskName `$_ -Confirm:`$false
-        Write-Host "  Removed task: `$_" -ForegroundColor Gray
+    if (Get-ScheduledTask -TaskName $_ -ErrorAction SilentlyContinue) {
+        Unregister-ScheduledTask -TaskName $_ -Confirm:$false
+        Write-Host "  Removed task: $_" -ForegroundColor Gray
     }
 }
 
 # Backup data before removal
-`$backupPath = "C:\SharePointSecurityMonitor_Backup_`$(Get-Date -Format 'yyyyMMdd_HHmmss')"
-Write-Host "  Creating backup at: `$backupPath" -ForegroundColor Cyan
-Copy-Item -Path "$InstallPath\SharePoint_Monitoring" -Destination `$backupPath -Recurse
+$backupPath = "C:\SharePointSecurityMonitor_Backup_$(Get-Date -Format ''yyyyMMdd_HHmmss'')"
+Write-Host "  Creating backup at: $backupPath" -ForegroundColor Cyan
+Copy-Item -Path "' + $InstallPath + '\SharePoint_Monitoring" -Destination $backupPath -Recurse
 
 # Remove installation
-Remove-Item -Path "$InstallPath" -Recurse -Force -Confirm:`$false
-Write-Host "Uninstallation complete. Backup saved to: `$backupPath" -ForegroundColor Green
-"@ | Out-File "$InstallPath\Uninstall-SharePointSecurityMonitor.ps1" -Force -Encoding UTF8
+Remove-Item -Path "' + $InstallPath + '" -Recurse -Force -Confirm:$false
+Write-Host "Uninstallation complete. Backup saved to: $backupPath" -ForegroundColor Green'
+
+$uninstallContent | Out-File "$InstallPath\Uninstall-SharePointSecurityMonitor.ps1" -Force -Encoding UTF8
 
 # 9. Run initial scan
 Write-Host "`n[9/9] Running initial security scan..." -ForegroundColor Yellow
@@ -503,8 +515,8 @@ Installation Summary:
   SMTP Server: $SMTPServer
 
 Scheduled Tasks:
-  ✓ Hourly Security Monitoring
-  ✓ Daily Summary Report (8:00 AM)
+  OK Hourly Security Monitoring
+  OK Daily Summary Report (8:00 AM)
 
 Quick Start Commands:
   Check Status:  .\Manage-Monitoring.ps1 -Action Status
@@ -512,7 +524,7 @@ Quick Start Commands:
   View Report:   .\Manage-Monitoring.ps1 -Action Report
   
 Documentation:
-  https://github.com/yourusername/sharepoint-security-monitor
+  https://github.com/paolokappa/SharePointSecurityMonitor
 
 Support:
   Create an issue on GitHub for assistance
