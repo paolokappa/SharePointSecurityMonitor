@@ -4,7 +4,7 @@
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
 [![SharePoint](https://img.shields.io/badge/SharePoint-2016%2F2019-green.svg)](https://www.microsoft.com/en-us/microsoft-365/sharepoint/collaboration)
 
-A comprehensive PowerShell-based SharePoint security monitoring solution with CVE-2023-29357 and CVE-2023-33157 protection, advanced DLL analysis, threat detection, and automated alerting capabilities.
+A comprehensive PowerShell-based SharePoint security monitoring solution with CVE-2025-53770 protection, advanced DLL analysis, threat detection, and automated alerting capabilities.
 
 ## Project Overview
 
@@ -12,7 +12,7 @@ The original 5,519-line PowerShell script has been successfully transformed into
 
 ## Key Features
 
-- **CVE-Specific Protection**: Dedicated detection for CVE-2023-29357 and CVE-2023-33157
+- **CVE-Specific Protection**: Dedicated detection for CVE-2025-53770
 - **Advanced DLL Analysis**: ML-based threat scoring with signature verification and behavioral analysis
 - **Modular Architecture**: 5 specialized PowerShell modules for different security functions
 - **Real-time Threat Detection**: Pattern matching and correlation analysis across time windows
