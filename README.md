@@ -1,4 +1,4 @@
-# 🛡️ Enhanced SharePoint Security Monitor v4.0
+# 🛡️ SharePoint Security Monitor v4.0
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
