@@ -51,7 +51,7 @@ The original 5,519-line PowerShell script has been successfully transformed into
 
 ### 🔧 Core Components
 
-#### 1️⃣ **Enhanced-SharePoint-Security-Monitor.ps1** (Main Script)
+#### 1️⃣ **SharePoint-Security-Monitor.ps1** (Main Script)
 - 🎯 Modular entry point with comprehensive parameter support
 - 🛡️ Error handling and recovery mechanisms
 - 📊 Progress reporting and execution time tracking
@@ -79,56 +79,56 @@ The original 5,519-line PowerShell script has been successfully transformed into
 ### 📌 Basic Usage
 ```powershell
 # Standard security scan
-.\Enhanced-SharePoint-Security-Monitor.ps1
+.\SharePoint-Security-Monitor.ps1
 ```
 
 ### 🎯 Common Operations
 ```powershell
 # ⚡ Quick scan (last 12 hours)
-.\Enhanced-SharePoint-Security-Monitor.ps1 -QuickScan
+.\SharePoint-Security-Monitor.ps1 -QuickScan
 
 # 📐 Create DLL baseline
-.\Enhanced-SharePoint-Security-Monitor.ps1 -CreateBaseline
+.\SharePoint-Security-Monitor.ps1 -CreateBaseline
 
 # 👁️ Review pending DLL approvals
-.\Enhanced-SharePoint-Security-Monitor.ps1 -ReviewPendingDLLs
+.\SharePoint-Security-Monitor.ps1 -ReviewPendingDLLs
 
 # 🔍 File integrity check
-.\Enhanced-SharePoint-Security-Monitor.ps1 -CheckIntegrity
+.\SharePoint-Security-Monitor.ps1 -CheckIntegrity
 
 # 📧 Force email alert with detailed report
-.\Enhanced-SharePoint-Security-Monitor.ps1 -ForceAlert -AlwaysSendReport
+.\SharePoint-Security-Monitor.ps1 -ForceAlert -AlwaysSendReport
 
 # ✅ Auto-approve legitimate DLLs
-.\Enhanced-SharePoint-Security-Monitor.ps1 -AutoApproveDLLs
+.\SharePoint-Security-Monitor.ps1 -AutoApproveDLLs
 ```
 
 ### 📅 Task Management
 ```powershell
 # 📥 Install scheduled tasks
-.\Enhanced-SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Install
+.\SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Install
 
 # 📊 Check task status
-.\Enhanced-SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Status
+.\SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Status
 
 # 🗑️ Remove scheduled tasks
-.\Enhanced-SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Remove
+.\SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Remove
 ```
 
 ### 🔬 Advanced Features
 ```powershell
 # 🔍 Verbose DLL analysis with auto-approval
-.\Enhanced-SharePoint-Security-Monitor.ps1 -VerboseDLL -AutoApproveDLLs
+.\SharePoint-Security-Monitor.ps1 -VerboseDLL -AutoApproveDLLs
 
 # 🧹 Clear caches and reset bookmarks
-.\Enhanced-SharePoint-Security-Monitor.ps1 -ClearCache -ResetBookmarks
+.\SharePoint-Security-Monitor.ps1 -ClearCache -ResetBookmarks
 ```
 
 ## 📁 File Structure
 
 ```
 📂 Enhanced SharePoint Security Monitor/
-├── 📄 Enhanced-SharePoint-Security-Monitor.ps1    # Main script
+├── 📄 SharePoint-Security-Monitor.ps1    # Main script
 ├── 🎮 Demo-EnhancedScript.ps1                     # Demonstration script
 ├── ⚙️  SharePointSecurityConfig.json               # Configuration file
 ├── 📦 Modules/
@@ -257,9 +257,9 @@ The original 5,519-line PowerShell script has been successfully transformed into
 1. 📂 Extract all files to a secure directory
 2. ⚙️ Review and customize `SharePointSecurityConfig.json`
 3. 🎮 Run demonstration: `.\Demo-EnhancedScript.ps1 -CreateSampleData`
-4. 📐 Create DLL baseline: `.\Enhanced-SharePoint-Security-Monitor.ps1 -CreateBaseline`
-5. 📅 Install scheduled tasks: `.\Enhanced-SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Install`
-6. 🔍 Perform initial scan: `.\Enhanced-SharePoint-Security-Monitor.ps1`
+4. 📐 Create DLL baseline: `.\SharePoint-Security-Monitor.ps1 -CreateBaseline`
+5. 📅 Install scheduled tasks: `.\SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Install`
+6. 🔍 Perform initial scan: `.\SharePoint-Security-Monitor.ps1`
 
 ### 🔐 Security Considerations
 - 👤 Run with appropriate administrative privileges
