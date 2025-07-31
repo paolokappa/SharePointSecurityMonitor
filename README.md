@@ -1,5 +1,9 @@
 # Enhanced SharePoint Security Monitor v4.0
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
+[![SharePoint](https://img.shields.io/badge/SharePoint-2016%2F2019-green.svg)](https://www.microsoft.com/en-us/microsoft-365/sharepoint/collaboration)
+
 A comprehensive PowerShell-based SharePoint security monitoring solution with CVE-2023-29357 and CVE-2023-33157 protection, advanced DLL analysis, threat detection, and automated alerting capabilities.
 
 ## Project Overview
