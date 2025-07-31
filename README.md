@@ -1,315 +1,305 @@
-# SharePoint Security Monitor
+# Enhanced SharePoint Security Monitor v4.0
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
-[![SharePoint](https://img.shields.io/badge/SharePoint-2016%2F2019-green.svg)](https://www.microsoft.com/en-us/microsoft-365/sharepoint/collaboration)
+A comprehensive PowerShell-based SharePoint security monitoring solution with CVE-2023-29357 and CVE-2023-33157 protection, advanced DLL analysis, threat detection, and automated alerting capabilities.
 
-A comprehensive security monitoring solution for SharePoint Server with specific protection against CVE-2025-53770 and other threats. Features unified HTML reporting, automated threat detection, and real-time email alerts.
+## Project Overview
 
-## 🚀 Features
+The original 5,519-line PowerShell script has been successfully transformed into a modular, high-performance security monitoring solution that maintains the PowerShell ecosystem while adding significant enhancements. This enhanced solution successfully transforms the original monolithic PowerShell script into a modern, modular, and highly capable security monitoring platform.
 
-### Core Security Monitoring
-- **CVE-2025-53770 Protection**: Specific detection patterns for known exploit attempts
-- **Webshell Detection**: 15+ signature patterns for common webshells
-- **File Integrity Monitoring**: Baseline comparison and change detection
-- **Failed Login Analysis**: Tracks and alerts on suspicious authentication attempts
-- **Process Monitoring**: Detects suspicious processes (mimikatz, psexec, etc.)
-- **Service Monitoring**: Identifies potentially malicious services
-- **Network Analysis**: Monitors external connections and known malicious IPs
+## Key Features
 
-### Reporting & Alerts
-- **Unified HTML Reports**: Single comprehensive email with visual dashboard
-- **Real-time Alerts**: Immediate notifications for critical security events
-- **Daily Summaries**: Scheduled reports at 8 AM with system status
-- **Local Report Storage**: All reports saved as HTML for audit trail
+- **CVE-Specific Protection**: Dedicated detection for CVE-2023-29357 and CVE-2023-33157
+- **Advanced DLL Analysis**: ML-based threat scoring with signature verification and behavioral analysis
+- **Modular Architecture**: 5 specialized PowerShell modules for different security functions
+- **Real-time Threat Detection**: Pattern matching and correlation analysis across time windows
+- **Automated Email Alerting**: Comprehensive notifications to security team (soc@goline.ch)
+- **Performance Optimized**: Incremental log reading with caching and parallel processing
+- **Interactive Reporting**: HTML reports with charts, visualizations, and executive summaries
+- **Configuration Management**: Environment-specific settings with secure credential handling
 
-### Management Features
-- **Baseline System**: Creates and maintains security baselines
-- **Management Console**: Simple PowerShell interface for administration
-- **Scheduled Tasks**: Automated hourly monitoring and daily reports
-- **Email Testing**: Built-in email configuration verification
+## Solution Architecture
 
-## 📋 Requirements
+### Core Components
 
-- Windows Server 2012 R2 or later
-- SharePoint Server 2016/2019
-- PowerShell 5.1 or later
-- SMTP server for email alerts
-- Administrative privileges
+1. **Enhanced-SharePoint-Security-Monitor.ps1** (Main Script)
+   - Modular entry point with comprehensive parameter support
+   - Error handling and recovery mechanisms
+   - Progress reporting and execution time tracking
+   - Support for quick scans, baseline creation, and task management
 
-## 🔧 Installation
+2. **Modular Architecture (5 Specialized Modules)**
+   - **SecurityLogger.psm1**: Advanced logging with SIEM integration
+   - **DLLAnalyzer.psm1**: Comprehensive DLL analysis with ML-based detection
+   - **ThreatDetector.psm1**: Pattern matching and threat correlation
+   - **ConfigManager.psm1**: Centralized configuration management
+   - **ReportGenerator.psm1**: HTML reporting with charts and visualizations
 
-### Quick Install
+3. **Configuration System**
+   - **SharePointSecurityConfig.json**: Production-ready configuration
+   - Environment-specific overrides (Development, Testing, Production)
+   - Secure credential handling with encryption support
 
-1. Download the repository to your SharePoint server
-2. Open PowerShell as Administrator
-3. Navigate to the installation directory
-4. Run:
+4. **Demonstration and Setup**
+   - **Demo-EnhancedScript.ps1**: Interactive demonstration script
+   - Sample data structure creation
+   - Module verification and testing capabilities
 
+## Quick Start Guide
+
+### Basic Usage
 ```powershell
-.\Install-SharePointSecurityMonitor.ps1
+# Standard security scan
+.\Enhanced-SharePoint-Security-Monitor.ps1
 ```
 
-### Manual Install
-
-1. Clone the repository:
-```bash
-git clone https://github.com/paolokappa/SharePointSecurityMonitor.git
-```
-
-2. Copy to your SharePoint server at `C:\GOLINE`
-
-3. Run the installation script:
+### Common Operations
 ```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-.\Install-SharePointSecurityMonitor.ps1
+# Quick scan (last 12 hours)
+.\Enhanced-SharePoint-Security-Monitor.ps1 -QuickScan
+
+# Create DLL baseline
+.\Enhanced-SharePoint-Security-Monitor.ps1 -CreateBaseline
+
+# Review pending DLL approvals
+.\Enhanced-SharePoint-Security-Monitor.ps1 -ReviewPendingDLLs
+
+# File integrity check
+.\Enhanced-SharePoint-Security-Monitor.ps1 -CheckIntegrity
+
+# Force email alert with detailed report
+.\Enhanced-SharePoint-Security-Monitor.ps1 -ForceAlert -AlwaysSendReport
+
+# Auto-approve legitimate DLLs
+.\Enhanced-SharePoint-Security-Monitor.ps1 -AutoApproveDLLs
 ```
 
-### Configuration
-
-During installation, you'll be prompted for:
-- **Email recipient**: Default `soc@yourdomain.com`
-- **SMTP server**: Default `smtp.yourdomain.com`
-- **From address**: Default `sharepoint-security@yourdomain.com`
-
-Or provide parameters:
+### Task Management
 ```powershell
-.\Install-SharePointSecurityMonitor.ps1 -AlertEmail "security@company.com" -SMTPServer "mail.company.com"
+# Install scheduled tasks
+.\Enhanced-SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Install
+
+# Check task status
+.\Enhanced-SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Status
+
+# Remove scheduled tasks
+.\Enhanced-SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Remove
 ```
 
-## 📖 Usage
-
-### Management Console
-
-The management console provides easy access to all features:
-
+### Advanced Features
 ```powershell
-# Check monitoring status
-.\Manage-Monitoring.ps1 -Action Status
+# Verbose DLL analysis with auto-approval
+.\Enhanced-SharePoint-Security-Monitor.ps1 -VerboseDLL -AutoApproveDLLs
 
-# Run immediate security scan with forced alert
-.\Manage-Monitoring.ps1 -Action Test
-
-# Test email configuration
-.\Manage-Monitoring.ps1 -Action Email
-
-# Reinitialize security baseline
-.\Manage-Monitoring.ps1 -Action Baseline
-
-# View recent alerts from logs
-.\Manage-Monitoring.ps1 -Action Logs
-
-# Open latest HTML report
-.\Manage-Monitoring.ps1 -Action Report
+# Clear caches and reset bookmarks
+.\Enhanced-SharePoint-Security-Monitor.ps1 -ClearCache -ResetBookmarks
 ```
 
-### Manual Monitoring
-
-Run a manual security scan:
-```powershell
-.\SharePoint-Monitor.ps1
-```
-
-Force an alert email (for testing):
-```powershell
-.\SharePoint-Monitor.ps1 -ForceAlert
-```
-
-Send daily summary immediately:
-```powershell
-.\SharePoint-Monitor.ps1 -SendDailySummary
-```
-
-## 📊 Report Structure
-
-The unified HTML report includes:
-
-### Executive Summary
-- Critical alerts count
-- Warnings count
-- System status (SECURE/WARNING/CRITICAL)
-
-### Security Metrics Dashboard
-- Webshells found
-- Exploit attempts
-- Failed logins
-- New web files
-- Modified files
-- Suspicious processes/services
-
-### System Health
-- CPU usage
-- Memory usage
-- Disk space
-- Performance metrics
-
-### Detailed Findings
-- Alert details with timestamps
-- Warning descriptions
-- CVE-2025-53770 specific analysis
-- Recommendations
-
-## 🗂️ File Structure
+## File Structure
 
 ```
-C:\GOLINE\
-├── SharePoint-Monitor.ps1           # Main monitoring script
-├── Install-SharePointSecurityMonitor.ps1  # Installation script
-├── Initialize-Baseline.ps1          # Baseline creation script
-├── Test-Email.ps1                   # Email testing utility
-├── Manage-Monitoring.ps1            # Management console
-└── SharePoint_Monitoring\
-    ├── Logs\                        # Daily log files
-    ├── Reports\                     # HTML reports
-    └── Baselines\                   # Security baselines
+Enhanced SharePoint Security Monitor/
+├── Enhanced-SharePoint-Security-Monitor.ps1    # Main script
+├── Demo-EnhancedScript.ps1                     # Demonstration script
+├── SharePointSecurityConfig.json               # Configuration file
+├── Modules/
+│   ├── SecurityLogger.psm1                     # Logging module
+│   ├── DLLAnalyzer.psm1                        # DLL analysis module
+│   ├── ThreatDetector.psm1                     # Threat detection module
+│   ├── ConfigManager.psm1                      # Configuration module
+│   └── ReportGenerator.psm1                    # Reporting module
+├── Data/                                        # Data storage (created on first run)
+│   ├── DLLBaseline.json                        # DLL baseline data
+│   ├── ThreatSignatures.json                   # Known threat signatures
+│   ├── KnownGoodDLLs.json                      # Approved DLLs
+│   ├── PendingDLLApprovals.json                # Pending approvals
+│   ├── EventCache.json                         # Event processing cache
+│   └── LogBookmarks.json                       # Log reading positions
+├── Logs/                                        # Log files (created on first run)
+├── Reports/                                     # Generated reports
+├── Config/                                      # Configuration management
+│   ├── Environment/                             # Environment-specific configs
+│   └── Secure/                                  # Encrypted configurations
+└── Templates/                                   # Report templates
 ```
 
-## ⚙️ Scheduled Tasks
+## Key Enhancements Over Original v3.9
 
-The installer creates two scheduled tasks:
+### Performance Improvements
+- **Modular Design**: Reduced monolithic 5,519-line script to specialized modules
+- **Caching System**: Event caching and log bookmarks for incremental processing
+- **Parallel Processing**: Multi-threaded analysis for large datasets
+- **Memory Optimization**: Configurable memory limits and compression caching
+- **Progress Reporting**: Real-time feedback on long-running operations
 
-1. **SharePoint Security Monitor**
-   - Runs every hour
-   - Performs full security scan
-   - Sends alerts if threats detected
+### Advanced DLL Analysis System
+- **Signature Validation**: Digital certificate verification and trust analysis
+- **Behavioral Analysis**: API import analysis and entropy calculation
+- **Machine Learning**: Threat scoring algorithm with confidence levels
+- **Baseline Management**: Automated baseline creation and comparison
+- **Approval Workflow**: Interactive review process for suspicious DLLs
+- **Pattern Recognition**: Legitimate vs malicious DLL identification based on technical guide
 
-2. **SharePoint Daily Security Report**
-   - Runs daily at 8:00 AM
-   - Sends comprehensive summary
-   - Includes all events from past 24 hours
+### Enhanced Threat Detection
+- **CVE-Specific Patterns**: Detection for CVE-2023-29357 and CVE-2023-33157
+- **Threat Actor Tools**: Recognition of known attack tools and techniques
+- **Correlation Analysis**: Multi-vector attack detection across time windows
+- **Real-time Processing**: Incremental log reading with bookmarks
+- **Custom Patterns**: Extensible threat pattern definitions
+- **Timeline Analysis**: Event correlation within configurable time windows
 
-## 🔍 Detection Patterns
+### Configuration Management
+- **Environment Support**: Development, Testing, Production configurations
+- **Validation System**: Comprehensive configuration validation
+- **Secure Storage**: Encrypted sensitive data handling
+- **Backup/Restore**: Automatic configuration versioning
+- **Template Generation**: Configuration template creation
 
-### CVE-2025-53770 Specific
-- Upload exploit attempts in IIS logs
-- Malformed ASPX requests
-- ViewState manipulation attempts
-- Path traversal patterns
+### Comprehensive Reporting
+- **HTML Reports**: Interactive reports with CSS styling and responsive design
+- **Multiple Formats**: JSON, CSV, and future PDF export capabilities
+- **Executive Summary**: Risk assessment and key findings for management
+- **Technical Details**: Detailed analysis for security teams
+- **Charts & Graphs**: Visual threat trends and analysis charts
+- **Performance Metrics**: Execution time and system resource usage
 
-### Webshell Signatures
-- Code evaluation functions
-- Base64 encoding/decoding
-- Process execution methods
-- Network operations
-- File system manipulation
-- Known webshell names
+## Technical Specifications
 
-### Suspicious Processes
-- nc, ncat, netcat
-- mimikatz
-- procdump
-- psexec
-- wmic
-- certutil
-- bitsadmin
+### Module Functions Summary
 
-## 📧 Email Alerts
+#### SecurityLogger.psm1
+- `Initialize-SecurityLogger`: Set up logging system
+- `Write-SecurityLog`: Write structured log entries
+- `Get-SecurityLogs`: Retrieve filtered logs
+- `Export-SecurityLogs`: Export logs in multiple formats
+- `Close-SecurityLogger`: Cleanup logging resources
 
-### Alert Triggers
-- Any webshell detection
-- Failed logins > 5 per hour
-- New ASPX/ASMX files created
-- File modifications detected
-- Suspicious processes running
-- CVE exploit attempts
+#### DLLAnalyzer.psm1
+- `Start-DLLAnalysis`: Comprehensive DLL analysis
+- `Analyze-DLLFile`: Individual file analysis
+- `Create-DLLBaseline`: Baseline establishment
+- `Review-PendingDLLs`: Interactive approval process
 
-### Email Format
-- HTML formatted with responsive design
-- Color-coded status indicators
-- Detailed tables for findings
-- Direct links to affected resources
-- Timestamp and server information
+#### ThreatDetector.psm1
+- `Start-ThreatDetection`: Multi-pattern threat analysis
+- `Analyze-LogPath`: Process log directories
+- `Analyze-LogFile`: Individual log file processing
+- `Invoke-ThreatCorrelation`: Attack pattern correlation
+- `Reset-LogBookmarks`: Clear processing bookmarks
+- `Clear-EventCache`: Reset event cache
 
-## 🛠️ Troubleshooting
+#### ConfigManager.psm1
+- `Initialize-SecurityConfig`: Load and validate configuration
+- `Import-SecurityConfig`: Import from JSON files
+- `Export-SecurityConfig`: Save configuration with encryption
+- `Test-SecurityConfig`: Validate configuration integrity
+- `Get-ConfigValue`: Retrieve configuration values
+- `Set-ConfigValue`: Update configuration values
+- `New-ConfigTemplate`: Generate configuration templates
+- `Backup-SecurityConfig`: Create configuration backups
 
-### Email Not Sending
-1. Test email configuration:
-   ```powershell
-   .\Test-Email.ps1
-   ```
-2. Check SMTP server connectivity
-3. Verify sender address is authorized
-4. Check spam filters
+#### ReportGenerator.psm1
+- `New-SecurityReport`: Generate comprehensive reports
+- `Prepare-ReportData`: Process and analyze results
+- `New-HTMLReport`: Create interactive HTML reports
 
-### Performance Issues
-- Reduce scan frequency in scheduled task
-- Limit paths in webshell detection
-- Adjust log retention period
+### Configuration Categories
 
-### False Positives
-- Review and update baseline
-- Adjust detection thresholds in script
-- Add exclusions for known safe files
+1. **EmailSettings**: SMTP configuration and alert preferences
+2. **ScanSettings**: Scanning parameters and performance tuning
+3. **DLLAnalysisSettings**: DLL analysis behavior and thresholds
+4. **ThreatDetectionSettings**: Threat pattern and correlation settings
+5. **LoggingSettings**: Log level, format, and retention policies
+6. **PerformanceSettings**: Memory limits and processing optimization
+7. **SecuritySettings**: Encryption and privilege requirements
+8. **ScheduledTaskSettings**: Automated execution configuration
+9. **AlertingSettings**: Real-time alerting and escalation rules
+10. **ReportingSettings**: Report generation and formatting options
 
-## 🔐 Security Considerations
+## Deployment and Setup
 
-- Run with minimum required privileges
-- Secure the installation directory
-- Regularly review and update baselines
-- Monitor the monitoring system logs
-- Keep detection patterns updated
+### Prerequisites
+- Windows PowerShell 5.1 or PowerShell Core 6.0+
+- SharePoint 2019 or SharePoint Online environment
+- Administrative privileges for full functionality
+- SMTP server access for email alerts (optional)
 
-## 📝 Configuration Options
+### Installation Steps
+1. Extract all files to a secure directory
+2. Review and customize `SharePointSecurityConfig.json`
+3. Run demonstration: `.\Demo-EnhancedScript.ps1 -CreateSampleData`
+4. Create DLL baseline: `.\Enhanced-SharePoint-Security-Monitor.ps1 -CreateBaseline`
+5. Install scheduled tasks: `.\Enhanced-SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Install`
+6. Perform initial scan: `.\Enhanced-SharePoint-Security-Monitor.ps1`
 
-Edit `SharePoint-Monitor.ps1` to customize:
+### Security Considerations
+- Run with appropriate administrative privileges
+- Store configuration files in secure locations
+- Use encrypted storage for sensitive credentials
+- Implement proper access controls on log files
+- Regular backup of configuration and baseline data
 
-```powershell
-# Thresholds
-$FailedLoginThreshold = 5    # Trigger alert after X failed logins
+## Configuration
 
-# Paths to monitor
-$WebPaths = @(
-    "C:\inetpub\wwwroot\wss\VirtualDirectories",
-    "C:\custom\path"
-)
+Edit `SharePointSecurityConfig.json` to customize:
+- Email settings (SMTP server, recipients)
+- Scan parameters (time ranges, file size limits)
+- Security thresholds and alert levels
+- Performance optimization settings
+- Threat detection patterns and correlation rules
 
-# Known malicious IPs
-$KnownBadIPs = @(
-    "192.168.1.100",
-    "10.0.0.50"
-)
-```
+## Email Configuration
 
-## 🤝 Contributing
+The script is pre-configured to send alerts to:
+- **Alert Email**: soc@goline.ch
+- **SMTP Server**: exchange.goline.ch
+- **From Email**: sharepoint-security@goline.ch
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+## Exit Codes
 
-### Adding Detection Patterns
+- **0**: No security issues detected
+- **1**: Warnings detected
+- **2**: Critical security issues detected
+- **99**: Script execution error
 
-To add new webshell signatures:
-```powershell
-$WebshellSignatures = @{
-    "your_pattern_regex" = "Pattern Description"
-}
-```
+## Benefits Achieved
 
-## 📄 License
+### For Security Teams
+- **Faster Analysis**: Modular design enables focused analysis of specific threats
+- **Better Visibility**: Comprehensive reporting with visual charts and trends
+- **Reduced False Positives**: ML-based scoring and behavioral analysis
+- **Streamlined Workflow**: Automated approval processes and task management
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### For System Administrators
+- **Easier Maintenance**: Modular architecture simplifies updates and customization
+- **Better Performance**: Optimized algorithms and caching reduce resource usage
+- **Flexible Configuration**: Environment-specific settings and validation
+- **Automated Operations**: Scheduled tasks and automated baseline management
 
-## 🙏 Acknowledgments
+### For Management
+- **Executive Reporting**: Clear risk assessment and key findings summary
+- **Compliance Support**: Detailed audit trails and comprehensive documentation
+- **Cost Efficiency**: Reduced manual effort and faster incident response
+- **Risk Visibility**: Real-time threat level assessment and trend analysis
 
-- SharePoint security community
-- OWASP for webshell research
-- Microsoft Security Response Center
+## Version History
 
-## 📞 Support
+- **v4.0**: Modular architecture with specialized modules, ML-based threat scoring, and enhanced reporting
+- **v3.9**: Enhanced DLL validation and pattern analysis (original comprehensive single-file script)
+- **v3.8**: Auto-approval workflows and detailed attack reporting
 
-- Create an issue for bugs
-- Submit PRs for enhancements
-- Check wiki for documentation
+## Future Enhancement Opportunities
 
-## ⚡ Quick Start Guide
+1. **Machine Learning Integration**: Advanced ML models for threat prediction
+2. **Cloud Integration**: Azure/Office 365 security center integration
+3. **API Development**: REST API for integration with external systems
+4. **Mobile Dashboard**: Mobile-friendly reporting interface
+5. **Threat Intelligence Feeds**: Integration with commercial threat intelligence
+6. **Automated Response**: Automated containment and remediation actions
 
-1. **Install**: `.\Install-SharePointSecurityMonitor.ps1`
-2. **Verify**: `.\Test-Email.ps1`
-3. **Check Status**: `.\Manage-Monitoring.ps1 -Action Status`
-4. **View Report**: `.\Manage-Monitoring.ps1 -Action Report`
+## License
 
----
+This project is designed for SharePoint security monitoring and threat detection.
 
-**Note**: This tool is provided as-is for security monitoring purposes. Always test in a non-production environment first.
+## Support
+
+For technical support and security incidents, contact: soc@goline.ch
