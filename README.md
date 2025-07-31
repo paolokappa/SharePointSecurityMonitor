@@ -170,7 +170,7 @@ The original 5,519-line PowerShell script has been successfully transformed into
 - **🎯 Pattern Recognition**: Legitimate vs malicious DLL identification
 
 ### 🛡️ Enhanced Threat Detection
-- **🔍 CVE-Specific Patterns**: Detection for CVE-2023-29357 and CVE-2023-33157
+- **🔍 CVE-Specific Patterns**: Detection for CVE-2025-53770 and bypass vulnerabilities
 - **👤 Threat Actor Tools**: Recognition of known attack tools and techniques
 - **🔗 Correlation Analysis**: Multi-vector attack detection across time windows
 - **⚡ Real-time Processing**: Incremental log reading with bookmarks
@@ -341,5 +341,7 @@ For technical support and security incidents, contact: **soc@goline.ch**
 **🛡️ Protecting SharePoint Environments Since 2024 🛡️**
 
 Made with ❤️ by the Security Operations Center
+
+</div>
 
 </div>
