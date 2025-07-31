@@ -1,0 +1,104 @@
+{
+  "Version": "1.0",
+  "LastUpdated": "2025-01-30 15:00:00",
+  "Environment": "Production",
+  "EmailSettings": {
+    "AlertEmail": "soc@goline.ch",
+    "SMTPServer": "exchange.goline.ch",
+    "SMTPPort": 25,
+    "FromEmail": "sharepoint-security@goline.ch",
+    "EnableSSL": false,
+    "UseAuthentication": false,
+    "Username": "",
+    "PasswordSecure": "",
+    "SendDailySummary": false,
+    "AlwaysSendReport": false,
+    "NoAlertOnWarnings": false
+  },
+  "ScanSettings": {
+    "MaxDaysToScan": 2,
+    "QuickScanHours": 12,
+    "MaxLogSizeMB": 250,
+    "EnableEventCache": true,
+    "CacheRetentionDays": 7,
+    "MaxConcurrentFiles": 5,
+    "ThreadPoolSize": 4,
+    "TimeoutSeconds": 300
+  },
+  "DLLAnalysisSettings": {
+    "EnableDLLAnalysis": true,
+    "AutoApproveLegitimate": false,
+    "CreateBaseline": false,
+    "BaselineUpdateFrequency": 7,
+    "MaxDLLSizeMB": 100,
+    "EnableSignatureValidation": true,
+    "EnableBehavioralAnalysis": true,
+    "ThreatScoreThreshold": 70,
+    "QuarantineSuspiciousDLLs": false
+  },
+  "ThreatDetectionSettings": {
+    "EnableThreatDetection": true,
+    "ThreatIntelligenceFeeds": [],
+    "CustomThreatPatterns": [],
+    "CorrelationTimeWindow": 3600,
+    "MaxThreatEvents": 10000,
+    "EnableMachineLearning": false,
+    "ConfidenceThreshold": 0.7
+  },
+  "LoggingSettings": {
+    "LogLevel": "INFO",
+    "LogFormat": "JSON",
+    "MaxLogSizeMB": 50,
+    "LogRetentionDays": 30,
+    "EnableSIEMIntegration": false,
+    "SIEMEndpoint": "",
+    "SIEMToken": "",
+    "EnableFileLogging": true,
+    "EnableEventLogging": true,
+    "EnableConsoleLogging": true
+  },
+  "PerformanceSettings": {
+    "EnableParallelProcessing": true,
+    "MaxMemoryUsageMB": 2048,
+    "EnableProgressReporting": true,
+    "EnableProfiling": false,
+    "OptimizeForLowMemory": false,
+    "EnableCompressionCache": true
+  },
+  "SecuritySettings": {
+    "EncryptSensitiveData": true,
+    "RequireElevatedPrivileges": true,
+    "EnableAuditLogging": true,
+    "RestrictLogAccess": true,
+    "SecureConfigStorage": true,
+    "EnableIntegrityChecks": true
+  },
+  "ScheduledTaskSettings": {
+    "EnableScheduledTasks": true,
+    "HourlyTaskEnabled": true,
+    "DailyTaskEnabled": true,
+    "StartupTaskEnabled": false,
+    "TaskExecutionTimeout": 1800,
+    "MaxRetryAttempts": 3,
+    "RetryDelaySeconds": 300
+  },
+  "AlertingSettings": {
+    "EnableRealTimeAlerts": true,
+    "CriticalAlertDelay": 0,
+    "HighAlertDelay": 300,
+    "MediumAlertDelay": 1800,
+    "EnableEscalation": false,
+    "EscalationDelay": 3600,
+    "MaxAlertsPerHour": 10
+  },
+  "ReportingSettings": {
+    "EnableReporting": true,
+    "ReportFormat": "HTML",
+    "IncludeDetailedAnalysis": true,
+    "IncludeCharts": true,
+    "IncludeRecommendations": true,
+    "ReportRetentionDays": 90,
+    "EnableAutomaticReports": true,
+    "ReportTimeZone": "W. Europe Standard Time"
+  }
+}
