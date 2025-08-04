@@ -1,12 +1,11 @@
 # SharePoint Security Monitor - Enhanced Edition with Performance Optimizations
 # Protection against CVE-2023-29357, CVE-2023-33157 and bypass vulnerabilities
-# PowerShell 5.1 Compatible - Version 3.9 - Performance Optimized with Auto Email
+# PowerShell 5.1 Compatible - Version 4.0 - Performance Optimized with Auto Email
 # Includes detection for known threat actors and advanced persistent threats
 # Enhanced DLL detection with intelligent filtering and signature verification
 # NEW: Incremental log reading with bookmarks and caching for improved performance
 # AUTO EMAIL: Automatically sends email on alerts or warnings (use -NoAlertOnWarnings to disable)
-# v3.8: Enhanced DLL management with auto-approval and detailed attack reporting
-# v3.9: Advanced DLL validation with pattern analysis and security checks
+# v4.0: Enhanced DLL management with auto-approval and detailed attack reporting
 #
 # NOTE FOR SHAREPOINT 2019:
 # - Security patches are included in Cumulative Updates (CU)
@@ -74,7 +73,7 @@ function Manage-ScheduledTasks {
         [switch]$Silent = $false,
         [string]$ScriptPath
     )
-
+    
     # If ScriptPath not provided, try to get it
     if (-not $ScriptPath) {
         $ScriptPath = $script:MyInvocation.MyCommand.Path
@@ -87,7 +86,7 @@ function Manage-ScheduledTasks {
             }
         }
     }
-
+    
     $taskDefinitions = @(
         @{
             Name = "SharePoint Security Monitor - Hourly"
@@ -108,12 +107,12 @@ function Manage-ScheduledTasks {
             TriggerType = "Startup"
         }
     )
-
+    
     switch ($Action) {
         "Check" {
             $existingTasks = @(Get-ScheduledTask -TaskName "SharePoint Security Monitor*" -ErrorAction SilentlyContinue)
             $expectedCount = $taskDefinitions.Count
-
+            
             if ($existingTasks.Count -eq $expectedCount) {
                 # All tasks exist, check if they're properly configured
                 $allValid = $true
@@ -127,11 +126,11 @@ function Manage-ScheduledTasks {
             }
             return $false
         }
-
+        
         "Status" {
             Write-Host "`nCurrent SharePoint Security Tasks:" -ForegroundColor Yellow
             $tasks = Get-ScheduledTask -TaskName "SharePoint Security Monitor*" -ErrorAction SilentlyContinue
-
+            
             if ($tasks) {
                 $tasks | ForEach-Object {
                     $info = Get-ScheduledTaskInfo -TaskName $_.TaskName -ErrorAction SilentlyContinue
@@ -147,20 +146,20 @@ function Manage-ScheduledTasks {
                 Write-Host "No SharePoint Security tasks found." -ForegroundColor Yellow
             }
         }
-
+        
         "Install" {
             if (-not $Silent) {
                 Write-Host "`nInstalling SharePoint Security tasks..." -ForegroundColor Yellow
             }
-
+            
             $created = 0
             $updated = 0
-
+            
             foreach ($taskDef in $taskDefinitions) {
                 if (-not $Silent) {
                     Write-Host "`n  Task: $($taskDef.Name)" -ForegroundColor Cyan
                 }
-
+                
                 # Check if exists
                 $existingTask = Get-ScheduledTask -TaskName $taskDef.Name -ErrorAction SilentlyContinue
                 if ($existingTask) {
@@ -173,12 +172,12 @@ function Manage-ScheduledTasks {
                 } else {
                     $created++
                 }
-
+                
                 # Use schtasks.exe for more reliable task creation
                 try {
                     $taskName = $taskDef.Name
                     $arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ScriptPath`" $($taskDef.Arguments)"
-
+                    
                     # Create the task using schtasks.exe
                     if ($taskName -like "*Hourly*") {
                         # Hourly task
@@ -204,7 +203,7 @@ function Manage-ScheduledTasks {
                             /RU SYSTEM /RL HIGHEST `
                             /F 2>&1
                     }
-
+                    
                     if ($LASTEXITCODE -eq 0) {
                         if (-not $Silent) {
                             Write-Host "    [+] Task created successfully" -ForegroundColor Green
@@ -212,14 +211,14 @@ function Manage-ScheduledTasks {
                     } else {
                         throw "schtasks.exe failed: $result"
                     }
-
+                    
                 } catch {
                     if (-not $Silent) {
                         Write-Host "    [X] Failed to create task: $_" -ForegroundColor Red
                     }
                 }
             }
-
+            
             if (-not $Silent) {
                 Write-Host "`n[Summary]" -ForegroundColor Cyan
                 Write-Host "  Created: $created new tasks" -ForegroundColor Green
@@ -255,16 +254,16 @@ if ($ManageTasks) {
    SharePoint Security Task Management
 =========================================================
 "@ -ForegroundColor Cyan
-
+    
     Manage-ScheduledTasks -Action $TaskAction -ScriptPath $currentScriptPath
-
+    
     if ($TaskAction -eq "Install") {
         $testNow = Read-Host "`nRun a security scan test now? [Y/N]"
         if ($testNow -eq 'Y') {
             Write-Host "`nRunning test..." -ForegroundColor Yellow
             Start-ScheduledTask -TaskName "SharePoint Security Monitor - Hourly"
             Start-Sleep -Seconds 3
-
+            
             $info = Get-ScheduledTaskInfo -TaskName "SharePoint Security Monitor - Hourly"
             if ($info.LastTaskResult -eq 0) {
                 Write-Host "Test successful!" -ForegroundColor Green
@@ -273,7 +272,7 @@ if ($ManageTasks) {
             }
         }
     }
-
+    
     # Exit after task management
     exit 0
 }
@@ -297,8 +296,8 @@ $ApprovedDLLFile = "$BaselinePath\ApprovedDLLs.json"       # NEW v3.8
 }
 
 # Log rotation for script logs
-Get-ChildItem $LogPath -Filter "SecurityMonitor_*.log" |
-    Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } |
+Get-ChildItem $LogPath -Filter "SecurityMonitor_*.log" | 
+    Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-30) } | 
     Remove-Item -Force
 
 # NEW v3.8: Handle DLL review mode
@@ -309,26 +308,26 @@ if ($ReviewPendingDLLs) {
    DLL Review and Approval Mode
 =========================================================
 "@ -ForegroundColor Cyan
-
+    
     if (Test-Path $PendingDLLFile) {
         $pendingDLLs = Get-Content $PendingDLLFile -Raw | ConvertFrom-Json
-
+        
         if ($pendingDLLs.PendingDLLs.Count -eq 0) {
             Write-Host "No pending DLLs to review." -ForegroundColor Green
             exit 0
         }
-
+        
         Write-Host "Found $($pendingDLLs.PendingDLLs.Count) pending DLLs for review:" -ForegroundColor Yellow
-
+        
         # Load approved DLLs
         $approvedDLLs = @{ ApprovedDLLs = @() }
         if (Test-Path $ApprovedDLLFile) {
             $approvedDLLs = Get-Content $ApprovedDLLFile -Raw | ConvertFrom-Json
         }
-
+        
         $approved = 0
         $rejected = 0
-
+        
         foreach ($dll in $pendingDLLs.PendingDLLs) {
             Write-Host "`n----------------------------------------" -ForegroundColor Cyan
             Write-Host "DLL: $($dll.Name)" -ForegroundColor Yellow
@@ -337,15 +336,15 @@ if ($ReviewPendingDLLs) {
             Write-Host "Created: $($dll.Created)" -ForegroundColor Gray
             Write-Host "Modified: $($dll.Modified)" -ForegroundColor Gray
             Write-Host "Hash: $($dll.Hash.Substring(0,16))..." -ForegroundColor Gray
-
+            
             if ($dll.SignatureStatus) {
                 Write-Host "Signature: $($dll.SignatureStatus) $(if($dll.SignerCertificate) { "by $($dll.SignerCertificate)" })" -ForegroundColor $(if($dll.SignatureStatus -eq 'Valid') {'Green'} else {'Red'})
             }
-
+            
             Write-Host "`nDetection reason: $($dll.Reason)" -ForegroundColor Yellow
-
+            
             $response = Read-Host "`nApprove this DLL? [Y]es / [N]o / [S]kip / [Q]uit"
-
+            
             switch ($response.ToUpper()) {
                 'Y' {
                     # Add to approved list
@@ -373,26 +372,26 @@ if ($ReviewPendingDLLs) {
                 }
             }
         }
-
+        
         # Save approved DLLs
         if ($approved -gt 0) {
             $approvedDLLs | ConvertTo-Json -Depth 3 | Out-File $ApprovedDLLFile -Force
             Write-Host "`nSaved $approved approved DLLs to whitelist." -ForegroundColor Green
         }
-
+        
         # Remove processed DLLs from pending
         $remainingPending = $pendingDLLs.PendingDLLs | Where-Object {
             $hash = $_.Hash
             -not ($approvedDLLs.ApprovedDLLs | Where-Object { $_.Hash -eq $hash })
         }
-
+        
         @{ PendingDLLs = $remainingPending } | ConvertTo-Json -Depth 3 | Out-File $PendingDLLFile -Force
-
+        
         Write-Host "`nReview complete: Approved=$approved, Rejected=$rejected, Remaining=$($remainingPending.Count)" -ForegroundColor Cyan
     } else {
         Write-Host "No pending DLLs file found. Run a security scan first." -ForegroundColor Yellow
     }
-
+    
     exit 0
 }
 
@@ -409,8 +408,8 @@ if ($ClearCache) {
 }
 
 # Clean old cache files (keep only last 7 days)
-Get-ChildItem $CachePath -Filter "ProcessedEvents_*.json" -ErrorAction SilentlyContinue |
-    Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-7) } |
+Get-ChildItem $CachePath -Filter "ProcessedEvents_*.json" -ErrorAction SilentlyContinue | 
+    Where-Object { $_.CreationTime -lt (Get-Date).AddDays(-7) } | 
     Remove-Item -Force
 
 # Initialize results collection
@@ -421,8 +420,6 @@ $global:SecurityResults = @{
     Warnings = @()
     Info = @()
     Statistics = @{}
-    ModifiedDLLDetails = @()  # NEW v3.9
-    NewDLLDetails = @()       # NEW v3.9
 }
 
 # Initialize performance monitoring
@@ -451,9 +448,9 @@ function Backup-CriticalFile {
         $backupPath = "$FilePath.backup_$(Get-Date -Format 'yyyyMMddHHmmss')"
         Copy-Item $FilePath $backupPath -Force
         # Keep only last 5 backups
-        Get-ChildItem "$FilePath.backup_*" |
-            Sort-Object CreationTime -Descending |
-            Select-Object -Skip 5 |
+        Get-ChildItem "$FilePath.backup_*" | 
+            Sort-Object CreationTime -Descending | 
+            Select-Object -Skip 5 | 
             Remove-Item -Force
     }
 }
@@ -461,7 +458,7 @@ function Backup-CriticalFile {
 # NEW: Bookmark management functions
 function Get-LogBookmark {
     param([string]$LogFile)
-
+    
     $bookmarks = @{}
     if (Test-Path $BookmarkFile) {
         try {
@@ -471,14 +468,14 @@ function Get-LogBookmark {
             Write-SecurityLog "Could not read bookmarks file, starting fresh" "WARNING"
         }
     }
-
+    
     if ($bookmarks.ContainsKey($LogFile)) {
         # Check if file was modified since bookmark
         $fileInfo = Get-Item $LogFile -ErrorAction SilentlyContinue
         if ($fileInfo) {
             $bookmarkTime = if ($bookmarks[$LogFile].LastReadTime) { [DateTime]::Parse($bookmarks[$LogFile].LastReadTime) } else { [DateTime]::MinValue }
             $bookmarkFileHash = $bookmarks[$LogFile].FileHash
-
+            
             # Calculate current file hash for first 1KB to detect rotation
             $currentHash = ""
             try {
@@ -488,7 +485,7 @@ function Get-LogBookmark {
                 $stream.Close()
                 $currentHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes))
             } catch {}
-
+            
             # If hash changed, file was rotated
             if ($bookmarkFileHash -and $currentHash -and $bookmarkFileHash -ne $currentHash) {
                 Write-SecurityLog "  Log file rotated (hash mismatch), resetting bookmark" "INFO"
@@ -500,7 +497,7 @@ function Get-LogBookmark {
                 }
             }
         }
-
+        
         return @{
             LastPosition = $bookmarks[$LogFile].LastPosition
             LastReadTime = if ($bookmarks[$LogFile].LastReadTime) { [DateTime]::Parse($bookmarks[$LogFile].LastReadTime) } else { [DateTime]::MinValue }
@@ -508,7 +505,7 @@ function Get-LogBookmark {
             FileHash = $bookmarks[$LogFile].FileHash
         }
     }
-
+    
     return @{
         LastPosition = 0
         LastReadTime = [DateTime]::MinValue
@@ -525,7 +522,7 @@ function Set-LogBookmark {
         [long]$FileSize,
         [string]$FileHash
     )
-
+    
     $bookmarks = @{}
     if (Test-Path $BookmarkFile) {
         try {
@@ -535,14 +532,14 @@ function Set-LogBookmark {
             # If reading fails, start fresh
         }
     }
-
+    
     $bookmarks[$LogFile] = @{
         LastPosition = $Position
         LastReadTime = $LastReadTime.ToString("yyyy-MM-dd HH:mm:ss")
         FileSize = $FileSize
         FileHash = $FileHash
     }
-
+    
     Backup-CriticalFile -FilePath $BookmarkFile
     $bookmarks | ConvertTo-Json -Depth 3 | Out-File $BookmarkFile -Force
 }
@@ -553,11 +550,11 @@ function Test-EventProcessed {
         [string]$EventHash,
         [string]$EventType
     )
-
+    
     if ($DisableEventCache) {
         return $false
     }
-
+    
     if (Test-Path $CacheFile) {
         try {
             $cache = Get-Content $CacheFile -Raw | ConvertFrom-Json
@@ -574,11 +571,11 @@ function Add-ProcessedEvent {
         [string]$EventHash,
         [string]$EventType
     )
-
+    
     if ($DisableEventCache) {
         return
     }
-
+    
     $cache = @{ ProcessedEvents = @() }
     if (Test-Path $CacheFile) {
         try {
@@ -587,20 +584,20 @@ function Add-ProcessedEvent {
             # If reading fails, start fresh
         }
     }
-
+    
     # Ensure ProcessedEvents is an array
     if (-not $cache.ProcessedEvents) {
         $cache = @{ ProcessedEvents = @() }
     }
-
+    
     # Add new event (limit cache size to prevent unbounded growth)
     $cache.ProcessedEvents += "$EventType|$EventHash"
-
+    
     # Keep only last 10000 events
     if ($cache.ProcessedEvents.Count -gt 10000) {
         $cache.ProcessedEvents = $cache.ProcessedEvents[-10000..-1]
     }
-
+    
     Backup-CriticalFile -FilePath $CacheFile
     $cache | ConvertTo-Json | Out-File $CacheFile -Force
 }
@@ -612,21 +609,21 @@ function Read-LogIncremental {
         [string[]]$Patterns,  # CHANGED: Now accepts array of patterns
         [hashtable]$Bookmark
     )
-
+    
     $currentFile = Get-Item $LogPath -ErrorAction SilentlyContinue
     if (-not $currentFile) {
         Write-SecurityLog "  Log file not found: $LogPath" "WARNING"
         return @()
     }
-
+    
     $results = @()
-
+    
     # Check if file is too large
     if ($currentFile.Length -gt ($MaxLogSizeMB * 1MB)) {
         Write-SecurityLog "  Skipping large log file ($('{0:N2}' -f ($currentFile.Length / 1MB)) MB): $($currentFile.Name) - Use -MaxLogSizeMB parameter to increase limit" "WARNING"
         return $results
     }
-
+    
     # Calculate file hash for rotation detection
     $currentFileHash = ""
     try {
@@ -636,19 +633,19 @@ function Read-LogIncremental {
         $hashStream.Close()
         $currentFileHash = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes))
     } catch {}
-
+    
     # If the file is smaller than bookmark or hash changed, it was rotated
     if ($currentFile.Length -lt $Bookmark.FileSize -or ($Bookmark.FileHash -and $currentFileHash -and $Bookmark.FileHash -ne $currentFileHash)) {
         Write-SecurityLog "  Log rotated, reading from start: $($currentFile.Name)" "INFO"
         $Bookmark.LastPosition = 0
         $Bookmark.FileHash = $currentFileHash
     }
-
+    
     # Read only if there are new data
     if ($currentFile.Length -gt $Bookmark.LastPosition) {
         $stream = $null
         $reader = $null
-
+        
         try {
             # Try to open with proper error handling
             try {
@@ -660,45 +657,45 @@ function Read-LogIncremental {
                 }
                 throw
             }
-
+            
             $reader = [System.IO.StreamReader]::new($stream)
-
+            
             # Go to last read position
             if ($Bookmark.LastPosition -gt 0 -and $Bookmark.LastPosition -le $stream.Length) {
                 $stream.Position = $Bookmark.LastPosition
             }
-
+            
             $newDataSize = $currentFile.Length - $Bookmark.LastPosition
             Write-SecurityLog "    Reading $('{0:N2}' -f ($newDataSize / 1KB)) KB of new data" "INFO"
-
+            
             $lineCount = 0
             $buffer = New-Object System.Text.StringBuilder
-
+            
             # For very large files, use buffered reading
             if ($newDataSize -gt 100MB) {
                 Write-SecurityLog "    Large file detected, using buffered reading" "INFO"
                 $bufferSize = 65536 # 64KB buffer
                 $charBuffer = New-Object char[] $bufferSize
-
+                
                 while (-not $reader.EndOfStream) {
                     $charsRead = $reader.Read($charBuffer, 0, $bufferSize)
                     if ($charsRead -gt 0) {
                         $buffer.Append($charBuffer, 0, $charsRead) | Out-Null
-
+                        
                         # Process complete lines in buffer
                         $bufferText = $buffer.ToString()
                         $lines = $bufferText -split "`n"
-
+                        
                         # Keep the last incomplete line in buffer
                         if ($lines.Count -gt 1) {
                             $buffer.Clear() | Out-Null
                             $buffer.Append($lines[-1]) | Out-Null
-
+                            
                             # Process complete lines
                             for ($i = 0; $i -lt $lines.Count - 1; $i++) {
                                 $line = $lines[$i].TrimEnd("`r")
                                 $lineCount++
-
+                                
                                 # Check against all patterns
                                 foreach ($pattern in $Patterns) {
                                     if ($line -match $pattern) {
@@ -710,7 +707,7 @@ function Read-LogIncremental {
                                         }
                                     }
                                 }
-
+                                
                                 # Progress update every 10000 lines
                                 if ($lineCount % 10000 -eq 0) {
                                     Write-Progress -Activity "Reading $($currentFile.Name)" -Status "$lineCount lines processed" -PercentComplete (($stream.Position / $currentFile.Length) * 100)
@@ -719,7 +716,7 @@ function Read-LogIncremental {
                         }
                     }
                 }
-
+                
                 # Process any remaining text in buffer
                 if ($buffer.Length -gt 0) {
                     $line = $buffer.ToString().TrimEnd("`r`n")
@@ -740,7 +737,7 @@ function Read-LogIncremental {
                 while (-not $reader.EndOfStream) {
                     $line = $reader.ReadLine()
                     $lineCount++
-
+                    
                     # Check against all patterns
                     foreach ($pattern in $Patterns) {
                         if ($line -match $pattern) {
@@ -752,21 +749,21 @@ function Read-LogIncremental {
                             }
                         }
                     }
-
+                    
                     # Progress update every 1000 lines
                     if ($lineCount % 1000 -eq 0) {
                         Write-Progress -Activity "Reading $($currentFile.Name)" -Status "$lineCount lines processed" -PercentComplete (($stream.Position / $currentFile.Length) * 100)
                     }
                 }
             }
-
+            
             Write-Progress -Activity "Reading $($currentFile.Name)" -Completed
-
+            
             # Update bookmark
             $newPosition = $stream.Position
-
+            
             Set-LogBookmark -LogFile $LogPath -Position $newPosition -LastReadTime (Get-Date) -FileSize $currentFile.Length -FileHash $currentFileHash
-
+            
             Write-SecurityLog "    Found $($results.Count) total matches in $lineCount new lines" "INFO"
         } catch {
             Write-SecurityLog "    Error reading log: $_" "ERROR"
@@ -777,107 +774,8 @@ function Read-LogIncremental {
     } else {
         Write-SecurityLog "    No new data since last scan" "INFO"
     }
-
+    
     return $results
-}
-
-# NEW v3.9: Function to analyze DLL creation patterns
-function Get-DLLCreationPattern {
-    param([string]$Path)
-
-    # Safety check
-    if (-not $global:SecurityThresholds) {
-        $global:SecurityThresholds = @{
-            DLLCreationHourlyLimit = 500
-            SharePointComponentLimit = 1000
-            ReputationAutoApproveScore = 5
-            SuspicionScoreThreshold = 85
-        }
-    }
-
-    $patternFile = "$CachePath\DLLCreationPatterns.json"
-    $patterns = @{}
-
-    if (Test-Path $patternFile) {
-        try {
-            $patternsJson = Get-Content $patternFile -Raw | ConvertFrom-Json
-            $patternsJson.PSObject.Properties | ForEach-Object {
-                $patterns[$_.Name] = $_.Value
-            }
-        } catch {
-            $patterns = @{}
-        }
-    }
-
-    # Analyze pattern last 7 days
-    $now = Get-Date
-    $cutoffTime = $now.AddDays(-7)
-
-    # Clean old data
-    $keysToRemove = @()
-    foreach ($key in $patterns.Keys) {
-        if ($patterns[$key].LastSeen) {
-            $lastSeen = [DateTime]::Parse($patterns[$key].LastSeen)
-            if ($lastSeen -lt $cutoffTime) {
-                $keysToRemove += $key
-            }
-        }
-    }
-
-    foreach ($key in $keysToRemove) {
-        $patterns.Remove($key)
-    }
-
-    # Add/update current pattern
-    $hourKey = $now.ToString("HH")
-    $patternKey = "$Path|$hourKey"
-
-    if ($patterns.ContainsKey($patternKey)) {
-        $patterns[$patternKey].Count++
-        $patterns[$patternKey].LastSeen = $now.ToString("yyyy-MM-dd HH:mm:ss")
-    } else {
-        $patterns[$patternKey] = @{
-            Count = 1
-            FirstSeen = $now.ToString("yyyy-MM-dd HH:mm:ss")
-            LastSeen = $now.ToString("yyyy-MM-dd HH:mm:ss")
-        }
-    }
-
-    # Save patterns
-    $patterns | ConvertTo-Json -Depth 3 | Out-File $patternFile -Force
-
-    # Check if pattern is anomalous
-    $isAnomalous = $false
-    $reason = ""
-
-    # Check 1: Too many creations in same hour
-    if ($patterns[$patternKey].Count -gt 50) {
-        $isAnomalous = $true
-        $reason = "Excessive DLL creation in same hour: $($patterns[$patternKey].Count)"
-    }
-
-    # Check 2: Night-time creations
-    $hour = [int]$hourKey
-    if ($hour -ge 2 -and $hour -le 5) {
-        # Count night creations
-        $nightCreations = 0
-        foreach ($key in $patterns.Keys) {
-            if ($key -match "\|0[2-5]$") {
-                $nightCreations += $patterns[$key].Count
-            }
-        }
-
-        if ($nightCreations -gt 10) {
-            $isAnomalous = $true
-            $reason = "Suspicious night-time DLL creation pattern"
-        }
-    }
-
-    return @{
-        IsAnomalous = $isAnomalous
-        Reason = $reason
-        CurrentHourCount = $patterns[$patternKey].Count
-    }
 }
 
 # Initialize CVE indicators - Using real CVEs from 2023
@@ -903,21 +801,6 @@ $CVEIndicators = @{
     AllAttacks = @()        # NEW v3.8: Comprehensive attack tracking
 }
 
-# Comprehensive SharePoint Components List
-$global:SharePointKnownComponents = @(
-    "default", "home", "pages", "sitepages", "lists", "libraries",
-    "allitems", "dispform", "editform", "newform", "upload", "download",
-    "viewlsts", "mcontent", "userdisp", "listfeed", "viewpage",
-    "settings", "admin", "farm", "application", "site", "web",
-    "generalapplicationsettings", "farmcredentialmanagement",
-    "deploysolution", "managefeatures", "backuprestore", "applications",
-    "accessdenied", "error", "login", "signout", "logout", "authenticate",
-    "unauthorized", "forbidden", "notfound", "servererror", "closeconnection",
-    "incomingemail", "outgoingemail", "emailsettings", "workflow",
-    "allposts", "posts", "categories", "archive", "newsfeed", "comments",
-    "v4master", "oslo", "seattle", "errorv15", "applicationv15",
-    "search", "results", "people", "searchresults"
-)
 # Known malicious IPs from recent threat intelligence
 $KnownAttackerIPs = @(
     "107.191.58.76",      # Example threat actor IP
@@ -1006,20 +889,6 @@ $SharePointLegitimeDLLs = @(
     ".*\.resources\.dll$"  # All resource DLLs
 )
 
-
-# WHITELIST: DLL legittime in _app_bin
-$LegitimateAppBinDLLs = @(
-    "Microsoft.FileServices.BETA.dll",
-    "Microsoft.FileServices.ServerStub.Beta.dll",
-    "Microsoft.FileServices.ServerStub.V1.dll",
-    "Microsoft.FileServices.ServerStub.V2.dll",
-    "Microsoft.FileServices.V1.dll",
-    "Microsoft.FileServices.V2.dll",
-    "Microsoft.Office.Discovery.Soap.dll",
-    "Microsoft.Office.*",
-    "Microsoft.SharePoint.*",
-    "Microsoft.Online.*"
-)
 # Known legitimate software DLLs
 $LegitimateToolDLLs = @{
     "7z.dll" = @{
@@ -1048,50 +917,24 @@ if (Test-Path $ApprovedDLLFile) {
     }
 }
 
-# Function to check if DLL is suspicious - ENHANCED v3.9
+# Function to check if DLL is suspicious - ENHANCED v3.8
 function Test-SuspiciousDLL {
     param(
         [System.IO.FileInfo]$File,
         [string]$BasePath
     )
-
+    
     # Calculate hash
     $hash = (Get-FileHash $File.FullName -Algorithm SHA256).Hash
-
-    # Check creation patterns first
-    $creationPattern = Get-DLLCreationPattern -Path $File.DirectoryName
-    if ($creationPattern.IsAnomalous) {
-        return @{
-            IsSuspicious = $true
-            Reason = "Anomalous creation pattern: $($creationPattern.Reason)"
-            Severity = "High"
-            Hash = $hash
-        }
-    }
-
+    
     # NEW v3.8: Check if in approved list first
     if ($ApprovedDLLs.ContainsKey($hash)) {
-        # NEW v3.9: Check if approval expired
-        if ($ApprovedDLLs[$hash].ExpiresAfter) {
-            $expirationDate = [DateTime]::Parse($ApprovedDLLs[$hash].ExpiresAfter)
-            if ($expirationDate -lt (Get-Date)) {
-                # Remove expired approval
-                $ApprovedDLLs.Remove($hash)
-                @{ ApprovedDLLs = $ApprovedDLLs.Values } | ConvertTo-Json -Depth 3 | Out-File $ApprovedDLLFile -Force
-            } else {
-                if ($VerboseDLL) {
-                    Write-Host "  [Approved] $($File.Name) - Previously approved on $($ApprovedDLLs[$hash].ApprovedDate)" -ForegroundColor Green
-                }
-                return @{ IsSuspicious = $false; IsApproved = $true }
-            }
-        } else {
-            if ($VerboseDLL) {
-                Write-Host "  [Approved] $($File.Name) - Previously approved on $($ApprovedDLLs[$hash].ApprovedDate)" -ForegroundColor Green
-            }
-            return @{ IsSuspicious = $false; IsApproved = $true }
+        if ($VerboseDLL) {
+            Write-Host "  [Approved] $($File.Name) - Previously approved on $($ApprovedDLLs[$hash].ApprovedDate)" -ForegroundColor Green
         }
+        return @{ IsSuspicious = $false; IsApproved = $true }
     }
-
+    
     # 1. Check against known malicious hashes
     if ($KnownMaliciousHashes.ContainsKey($hash)) {
         return @{
@@ -1101,320 +944,154 @@ function Test-SuspiciousDLL {
             Severity = "Critical"
         }
     }
-
-    # 2. NEW v3.9: Enhanced validation for ASP.NET temporary DLLs
-    if ($File.DirectoryName -match "Temporary ASP\.NET Files") {
-
-        # Verifica che sia una compilazione ASP.NET legittima
-        $isLegitimateCompilation = $false
-        $suspicionReasons = @()
-
-        # Check 1: Nome file deve seguire pattern ASP.NET
-        if ($File.Name -match "^App_Web_.*\.([a-z0-9]{8})\.([a-z0-9]{8})\.dll$") {
-
-            # Check 2: Verifica la presenza di file correlati (ASP.NET crea sempre gruppi di file)
-            $hashPart = if ($File.Name -match "\.([a-z0-9]{8})\.dll$") { $Matches[1] } else { $null }
-            if ($hashPart) {
-                $relatedFiles = Get-ChildItem -Path $File.DirectoryName -Filter "*.$hashPart.*" -ErrorAction SilentlyContinue
-
-                if ($relatedFiles.Count -lt 2) {
-                    $suspicionReasons += "Isolated DLL without ASP.NET compilation artifacts"
-                } else {
-                    # Check 3: Verifica presenza di file .compiled
-                    $compiledFile = $relatedFiles | Where-Object { $_.Extension -eq ".compiled" }
-                    if (-not $compiledFile) {
-                        $suspicionReasons += "Missing .compiled marker file"
-                    } else {
-                        # Check 4: Analizza il contenuto del file .compiled
-                        try {
-                            [xml]$compiledXml = Get-Content $compiledFile.FullName
-                            if ($compiledXml.preserve -and $compiledXml.preserve.assembly) {
-                                # Verifica che il nome assembly corrisponda
-                                if ($compiledXml.preserve.assembly -ne $File.BaseName) {
-                                    $suspicionReasons += "Assembly name mismatch in .compiled file"
-                                } else {
-                                    $isLegitimateCompilation = $true
-                                }
-                            }
-                        } catch {
-                            $suspicionReasons += "Invalid or corrupted .compiled file"
-                        }
-                    }
-                }
-            }
-
-            # Check 5: Verifica timing con IIS requests
-            if ($isLegitimateCompilation) {
-                # Controlla se ci sono state richieste web legittime negli ultimi 5 minuti
-                $compilationTime = $File.CreationTime
-                $timeLowerBound = $compilationTime.AddMinutes(-5)
-                $timeUpperBound = $compilationTime.AddMinutes(1)
-
-                # Cerca nei log IIS recenti
-                $iisLogPath = "C:\inetpub\logs\LogFiles"
-                $recentIISLogs = Get-ChildItem $iisLogPath -Recurse -Filter "*.log" -ErrorAction SilentlyContinue |
-                    Where-Object { $_.LastWriteTime -ge $timeLowerBound } |
-                    Select-Object -First 1
-
-                if ($recentIISLogs) {
-                    # Cerca richieste ASPX nel periodo di compilazione
-                    $legitimateRequest = $false
-                    try {
-                        $logContent = Get-Content $recentIISLogs.FullName -Tail 1000 |
-                            Where-Object { $_ -match "\.aspx|\.asmx|\.ashx" -and $_ -notmatch "404|403|500" }
-
-                        if ($logContent) {
-                            foreach ($line in $logContent) {
-                                if ($line -match '(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})') {
-                                    $logTime = [DateTime]::Parse("$($Matches[1]) $($Matches[2])")
-                                    if ($logTime -ge $timeLowerBound -and $logTime -le $timeUpperBound) {
-                                        $legitimateRequest = $true
-                                        break
-                                    }
-                                }
-                            }
-                        }
-                    } catch {
-                        # Log reading failed, be conservative
-                    }
-
-                    if (-not $legitimateRequest) {
-                        $suspicionReasons += "No corresponding web requests found near compilation time"
-                        $isLegitimateCompilation = $false
-                    }
-                }
-            }
-
-            # Check 6: Verifica dimensione file (le DLL ASP.NET hanno range tipici)
-            if ($File.Length -lt 4KB -or $File.Length -gt 500KB) {
-                $suspicionReasons += "Unusual size for ASP.NET compiled DLL: $('{0:N2}' -f ($File.Length / 1KB)) KB"
-                $isLegitimateCompilation = $false
-            }
-
-            # Check 7: Verifica PE headers e imports
-            try {
-                $bytes = [System.IO.File]::ReadAllBytes($File.FullName)
-                if ($bytes.Length -gt 1024) {
-                    # Cerca pattern sospetti nel binario
-                    $binaryString = [System.Text.Encoding]::ASCII.GetString($bytes, 0, [Math]::Min($bytes.Length, 10000))
-
-                    # Pattern malevoli comuni
-                    $maliciousPatterns = @(
-                        "mimikatz",
-                        "sekurlsa",
-                        "WScript.Shell",
-                        "cmd.exe",
-                        "powershell.exe",
-                        "net user",
-                        "reg add",
-                        "schtasks",
-                        "meterpreter",
-                        "reverse_tcp",
-                        "bind_tcp"
-                    )
-
-                    foreach ($pattern in $maliciousPatterns) {
-                        if ($binaryString -match [regex]::Escape($pattern)) {
-                            $suspicionReasons += "Suspicious string found: $pattern"
-                            $isLegitimateCompilation = $false
-                            break
-                        }
-                    }
-
-                    # Verifica imports sospetti
-                    if ($binaryString -match "VirtualAlloc|WriteProcessMemory|CreateRemoteThread|LoadLibrary") {
-                        $suspicionReasons += "Suspicious API imports detected"
-                        $isLegitimateCompilation = $false
-                    }
-                }
-            } catch {
-                # Binary analysis failed, be conservative
-                $suspicionReasons += "Unable to analyze binary content"
-            }
-
-        } else {
-            $suspicionReasons += "Does not match ASP.NET compilation pattern"
-        }
-
-        # Decision logic
-        if ($isLegitimateCompilation -and $suspicionReasons.Count -eq 0) {
-            # Solo se TUTTI i controlli passano
-            if ($VerboseDLL) {
-                Write-Host "  [Verified ASP.NET] $($File.Name) - All security checks passed" -ForegroundColor Green
-            }
-
-            # Add to temporary whitelist with short expiration
-            if (-not $ApprovedDLLs.ContainsKey($hash)) {
-                $ApprovedDLLs[$hash] = @{
-                    Name = $File.Name
-                    Hash = $hash
-                    Path = $File.FullName
-                    ApprovedDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                    ApprovedBy = "Auto-approval (Verified ASP.NET)"
-                    Reason = "Passed all ASP.NET compilation security checks"
-                    ExpiresAfter = (Get-Date).AddHours(4).ToString("yyyy-MM-dd HH:mm:ss")  # Short expiration
-                    SecurityChecks = @{
-                        HasCompiledFile = $true
-                        HasWebRequests = $true
-                        NormalSize = $true
-                        NoSuspiciousContent = $true
-                    }
-                }
-
-                @{ ApprovedDLLs = $ApprovedDLLs.Values } | ConvertTo-Json -Depth 3 | Out-File $ApprovedDLLFile -Force
-            }
-
-            return @{ IsSuspicious = $false; IsApproved = $true }
-        } else {
-            # Suspicious - report it
-            return @{
-                IsSuspicious = $true
-                Reason = "Failed ASP.NET validation: " + ($suspicionReasons -join "; ")
-                Severity = if ($suspicionReasons.Count -gt 2) { "High" } else { "Medium" }
-                Details = $suspicionReasons -join "; "
-                Hash = $hash
-            }
-        }
-    }
-
-    # NUOVO: Auto-approvazione intelligente per DLL SharePoint compilate
-    if ($File.Name -match "^App_Web_.*\.(aspx|ascx|master|asmx|ashx).*\.dll$") {
-        # Lista estesa di pagine/componenti SharePoint legittimi
-        $sharePointComponents = @(
-            # Pagine di sistema
-            "accessdenied", "error", "login", "signout", "logout", "authenticate",
-            "unauthorized", "forbidden", "notfound", "servererror",
-
-            # Pagine amministrative
-            "settings", "admin", "farm", "application", "site", "web",
-            "generalapplicationsettings", "farmcredentialmanagement",
-            "deploysolution", "managefeatures", "backuprestore",
-
-            # Pagine di contenuto
-            "default", "home", "pages", "sitepages", "lists", "libraries",
-            "allitems", "dispform", "editform", "newform", "upload",
-            "download", "viewlsts", "mcontent", "userdisp", "listfeed",
-
-            # Componenti funzionali
-            "search", "results", "people", "groups", "users", "permissions",
-            "workflow", "reports", "analytics", "usage", "audit",
-
-            # Master pages e controlli
-            "v4master", "oslo", "seattle", "errorv15", "applicationv15",
-            "mysite", "onedrive", "personal",
-
-            # API e servizi
-            "client", "rest", "api", "service", "handler",
-            "forms", "layouts", "controltemplates",
-
-            # Componenti social
-            "newsfeed", "comments", "allcomments", "social", "following",
-            "microfeed", "tags", "ratings", "likes"
-        )
-
-        # Verifica se il nome contiene un componente SharePoint noto
-        $isSharePointComponent = $false
-        $componentFound = ""
-
-        foreach ($component in $sharePointComponents) {
-            if ($File.Name.ToLower() -match $component) {
-                $isSharePointComponent = $true
-                $componentFound = $component
-                break
-            }
-        }
-
-        if ($isSharePointComponent) {
-            # Verifica aggiuntiva: la DLL deve avere il pattern di hash ASP.NET
-            if ($File.Name -match "\.([a-f0-9]{8})\.([a-z0-9]{8})\.dll$") {
-
-                if ($VerboseDLL) {
-                    Write-Host "  [SharePoint ASP.NET] $($File.Name) - Auto-approved ($componentFound component)" -ForegroundColor Green
-                }
-
-                # Auto-approva se non già presente
-                if (-not $ApprovedDLLs.ContainsKey($hash)) {
-                    $ApprovedDLLs[$hash] = @{
-                        Name = $File.Name
-                        Hash = $hash
-                        Path = $File.FullName
-                        ApprovedDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                        ApprovedBy = "Auto-approval (SharePoint ASP.NET)"
-                        Reason = "Legitimate SharePoint component: $componentFound"
-                    }
-
-                    # Salva nel file delle approvazioni
-                    @{ ApprovedDLLs = $ApprovedDLLs.Values } | ConvertTo-Json -Depth 3 | Out-File $ApprovedDLLFile -Force
-
-                    Write-SecurityLog "  Auto-approved SharePoint DLL: $($File.Name) (component: $componentFound)" "INFO"
-                }
-
-                return @{ IsSuspicious = $false; IsApproved = $true }
-            }
-        }
-
-        # Se non è un componente noto ma ha il pattern App_Web_, potrebbe essere sospetto
-        # MA prima verifichiamo se è firmato da Microsoft
-        try {
-            $sig = Get-AuthenticodeSignature $File.FullName -ErrorAction Stop
-            if ($sig.Status -eq "Valid" -and $sig.SignerCertificate.Subject -match "Microsoft") {
-                # È firmato da Microsoft, quindi è legittimo
-                if ($VerboseDLL) {
-                    Write-Host "  [Microsoft Signed] $($File.Name) - Trusted ASP.NET component" -ForegroundColor Green
-                }
-
-                # Auto-approva
-                if (-not $ApprovedDLLs.ContainsKey($hash)) {
-                    $ApprovedDLLs[$hash] = @{
-                        Name = $File.Name
-                        Hash = $hash
-                        Path = $File.FullName
-                        ApprovedDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                        ApprovedBy = "Auto-approval (Microsoft Signed)"
-                        Reason = "Microsoft signed ASP.NET component"
-                    }
-
-                    @{ ApprovedDLLs = $ApprovedDLLs.Values } | ConvertTo-Json -Depth 3 | Out-File $ApprovedDLLFile -Force
-                }
-
-                return @{ IsSuspicious = $false; IsApproved = $true }
-            }
-        } catch {
-            # Continua con altri controlli se la verifica firma fallisce
-        }
-    }
-
+    
+	# 2. Check if it's an ASP.NET temporary file
+	if ($File.DirectoryName -match "Temporary ASP\.NET Files") {
+		foreach ($pattern in $LegitimateASPNETPatterns) {
+			if ($File.Name -match $pattern) {
+				return @{ IsSuspicious = $false }
+			}
+		}
+		
+		# NUOVO: Auto-approvazione intelligente per DLL SharePoint compilate
+		if ($File.Name -match "^App_Web_.*\.(aspx|ascx|master|asmx|ashx).*\.dll$") {
+			# Lista estesa di pagine/componenti SharePoint legittimi
+			$sharePointComponents = @(
+				# Pagine di sistema
+				"accessdenied", "error", "login", "signout", "logout", "authenticate",
+				"unauthorized", "forbidden", "notfound", "servererror",
+				
+				# Pagine amministrative
+				"settings", "admin", "farm", "application", "site", "web",
+				"generalapplicationsettings", "farmcredentialmanagement",
+				"deploysolution", "managefeatures", "backuprestore",
+				
+				# Pagine di contenuto
+				"default", "home", "pages", "sitepages", "lists", "libraries",
+				"allitems", "dispform", "editform", "newform", "upload",
+				"download", "viewlsts", "mcontent", "userdisp", "listfeed",
+				
+				# Componenti funzionali
+				"search", "results", "people", "groups", "users", "permissions",
+				"workflow", "reports", "analytics", "usage", "audit",
+				
+				# Master pages e controlli
+				"v4master", "oslo", "seattle", "errorv15", "applicationv15",
+				"mysite", "onedrive", "personal",
+				
+				# API e servizi
+				"client", "rest", "api", "service", "handler",
+				"forms", "layouts", "controltemplates",
+				
+				# Componenti social
+				"newsfeed", "comments", "allcomments", "social", "following",
+				"microfeed", "tags", "ratings", "likes"
+			)
+			
+			# Verifica se il nome contiene un componente SharePoint noto
+			$isSharePointComponent = $false
+			$componentFound = ""
+			
+			foreach ($component in $sharePointComponents) {
+				if ($File.Name.ToLower() -match $component) {
+					$isSharePointComponent = $true
+					$componentFound = $component
+					break
+				}
+			}
+			
+			if ($isSharePointComponent) {
+				# Verifica aggiuntiva: la DLL deve avere il pattern di hash ASP.NET
+				if ($File.Name -match "\.([a-f0-9]{8})\.([a-z0-9]{8})\.dll$") {
+					
+					if ($VerboseDLL) {
+						Write-Host "  [SharePoint ASP.NET] $($File.Name) - Auto-approved ($componentFound component)" -ForegroundColor Green
+					}
+					
+					# Auto-approva se non già presente
+					if (-not $ApprovedDLLs.ContainsKey($hash)) {
+						$ApprovedDLLs[$hash] = @{
+							Name = $File.Name
+							Hash = $hash
+							Path = $File.FullName
+							ApprovedDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+							ApprovedBy = "Auto-approval (SharePoint ASP.NET)"
+							Reason = "Legitimate SharePoint component: $componentFound"
+						}
+						
+						# Salva nel file delle approvazioni
+						@{ ApprovedDLLs = $ApprovedDLLs.Values } | ConvertTo-Json -Depth 3 | Out-File $ApprovedDLLFile -Force
+						
+						Write-SecurityLog "  Auto-approved SharePoint DLL: $($File.Name) (component: $componentFound)" "INFO"
+					}
+					
+					return @{ IsSuspicious = $false; IsApproved = $true }
+				}
+			}
+			
+			# Se non è un componente noto ma ha il pattern App_Web_, potrebbe essere sospetto
+			# MA prima verifichiamo se è firmato da Microsoft
+			try {
+				$sig = Get-AuthenticodeSignature $File.FullName -ErrorAction Stop
+				if ($sig.Status -eq "Valid" -and $sig.SignerCertificate.Subject -match "Microsoft") {
+					# È firmato da Microsoft, quindi è legittimo
+					if ($VerboseDLL) {
+						Write-Host "  [Microsoft Signed] $($File.Name) - Trusted ASP.NET component" -ForegroundColor Green
+					}
+					
+					# Auto-approva
+					if (-not $ApprovedDLLs.ContainsKey($hash)) {
+						$ApprovedDLLs[$hash] = @{
+							Name = $File.Name
+							Hash = $hash
+							Path = $File.FullName
+							ApprovedDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+							ApprovedBy = "Auto-approval (Microsoft Signed)"
+							Reason = "Microsoft signed ASP.NET component"
+						}
+						
+						@{ ApprovedDLLs = $ApprovedDLLs.Values } | ConvertTo-Json -Depth 3 | Out-File $ApprovedDLLFile -Force
+					}
+					
+					return @{ IsSuspicious = $false; IsApproved = $true }
+				}
+			} catch {
+				# Continua con altri controlli se la verifica firma fallisce
+			}
+		}
+	}
+    
     # 3. Check if it's from a legitimate security vendor
     foreach ($vendor in $LegitimateSecurityVendors) {
         if ($File.DirectoryName -match $vendor -or $File.Name -match $vendor) {
             return @{ IsSuspicious = $false }
         }
     }
-
+    
     # 4. Check if it's a legitimate system DLL
     foreach ($pattern in $LegitimateSystemDLLs) {
         if ($File.Name -match $pattern) {
             return @{ IsSuspicious = $false }
         }
     }
-
+    
     # 5. Check if it's a legitimate SharePoint DLL
     foreach ($pattern in $SharePointLegitimeDLLs) {
         if ($File.Name -match $pattern) {
             return @{ IsSuspicious = $false }
         }
     }
-
+    
     # 6. Check if it's in SharePoint version-specific folders
-    if ($File.DirectoryName -match "\\16\.0\.\d+\.\d+\\" -or
+    if ($File.DirectoryName -match "\\16\.0\.\d+\.\d+\\" -or 
         $File.DirectoryName -match "\\15\.0\.\d+\.\d+\\") {
         return @{ IsSuspicious = $false }
     }
-
+    
     # 7. Check known legitimate tool DLLs with signature verification
     if ($LegitimateToolDLLs.ContainsKey($File.Name)) {
         $toolInfo = $LegitimateToolDLLs[$File.Name]
-
+        
         # Check file size
         if ($File.Length -ge $toolInfo.MinSize -and $File.Length -le $toolInfo.MaxSize) {
             # Verify digital signature
@@ -1435,26 +1112,26 @@ function Test-SuspiciousDLL {
             }
         }
     }
-
+    
     # 8. Check for suspicious characteristics
     $suspicious = $false
     $reasons = @()
     $canAutoApprove = $true  # NEW v3.8
-
+    
     # Check if DLL has unusual characteristics
     if ($File.Length -lt 1KB -or $File.Length -gt 50MB) {
         $suspicious = $true
         $reasons += "Unusual file size: $('{0:N2}' -f ($File.Length / 1KB)) KB"
         $canAutoApprove = $false
     }
-
+    
     # Check if DLL is in temp but doesn't match expected patterns
-    if ($File.DirectoryName -match "(Temp|TEMP|tmp|TMP|cache|Cache)" -and
+    if ($File.DirectoryName -match "(Temp|TEMP|tmp|TMP|cache|Cache)" -and 
         $File.CreationTime -gt (Get-Date).AddDays(-7)) {
-
+        
         # Additional checks for temp DLLs
         $isTrulySystemTemp = $false
-
+        
         # Check if it's in a Microsoft installation temp folder
         if ($File.DirectoryName -match "EsetRemoteAdminAgent" -or
             $File.DirectoryName -match "\\{[A-F0-9-]+}\\" -or
@@ -1462,7 +1139,7 @@ function Test-SuspiciousDLL {
             $File.DirectoryName -match "\\Updates\\") {
             $isTrulySystemTemp = $true
         }
-
+        
         if (-not $isTrulySystemTemp) {
             # Check for suspicious naming patterns
             if ($File.Name -match "^[a-z0-9]{6,8}\.dll$" -or
@@ -1472,18 +1149,18 @@ function Test-SuspiciousDLL {
                 $reasons += "Suspicious filename pattern in temp location"
                 $canAutoApprove = $false
             }
-
+            
             # Skip "isolated DLL" check for known tools
             if (-not $LegitimateToolDLLs.ContainsKey($File.Name)) {
                 # Check if it's a single DLL without accompanying files
-                $siblingFiles = Get-ChildItem -Path $File.DirectoryName -Filter "*.dll" |
+                $siblingFiles = Get-ChildItem -Path $File.DirectoryName -Filter "*.dll" | 
                     Where-Object { $_.Name -ne $File.Name }
-
+                
                 if ($siblingFiles.Count -eq 0) {
                     # Additional check: is there an associated EXE?
                     $exeName = $File.BaseName + ".exe"
                     $hasExe = Test-Path (Join-Path $File.DirectoryName $exeName)
-
+                    
                     if (-not $hasExe) {
                         $suspicious = $true
                         $reasons += "Isolated DLL in temp location"
@@ -1492,11 +1169,11 @@ function Test-SuspiciousDLL {
             }
         }
     }
-
+    
     # Check if DLL is in web-accessible location
-    if ($BasePath -match "(wwwroot|inetpub)" -and
+    if ($BasePath -match "(wwwroot|inetpub)" -and 
         $File.DirectoryName -notmatch "(bin|App_Code|App_Data)") {
-
+        
         # Check if it's not in a protected folder
         if ($File.DirectoryName -notmatch "\\(16|15|14)\\(TEMPLATE|ISAPI)\\") {
             $suspicious = $true
@@ -1504,19 +1181,19 @@ function Test-SuspiciousDLL {
             $canAutoApprove = $false
         }
     }
-
+    
     # Check for double extensions or suspicious patterns
     if ($File.Name -match "\.(aspx|asp|ashx|asmx)\.dll$") {
         $suspicious = $true
         $reasons += "Double extension pattern"
         $canAutoApprove = $false
     }
-
+    
     # NEW v3.8: Auto-approval logic
     if ($suspicious -and $AutoApproveDLLs -and $canAutoApprove) {
         # Additional verification for auto-approval
         $autoApprove = $false
-
+        
         # Check if signed by trusted publisher
         try {
             $sig = Get-AuthenticodeSignature $File.FullName -ErrorAction Stop
@@ -1529,12 +1206,12 @@ function Test-SuspiciousDLL {
                     "Intel Corporation",
                     "NVIDIA Corporation"
                 )
-
+                
                 foreach ($publisher in $trustedPublishers) {
                     if ($sig.SignerCertificate.Subject -match [regex]::Escape($publisher)) {
                         $autoApprove = $true
                         Write-SecurityLog "  Auto-approving signed DLL: $($File.Name) (signed by $publisher)" "INFO"
-
+                        
                         # Add to approved list
                         $ApprovedDLLs[$hash] = @{
                             Name = $File.Name
@@ -1544,10 +1221,10 @@ function Test-SuspiciousDLL {
                             ApprovedBy = "Auto-approval"
                             Reason = "Signed by $publisher"
                         }
-
+                        
                         # Save updated approved list
                         @{ ApprovedDLLs = $ApprovedDLLs.Values } | ConvertTo-Json -Depth 3 | Out-File $ApprovedDLLFile -Force
-
+                        
                         return @{ IsSuspicious = $false; IsApproved = $true }
                     }
                 }
@@ -1556,7 +1233,7 @@ function Test-SuspiciousDLL {
             # Signature check failed, cannot auto-approve
         }
     }
-
+    
     # Return result
     if ($suspicious) {
         return @{
@@ -1567,69 +1244,70 @@ function Test-SuspiciousDLL {
             CanAutoApprove = $canAutoApprove
         }
     }
-
+    
     return @{ IsSuspicious = $false }
 }
 
 # Function to check if IP belongs to GOLINE
 function Test-GOLINEIPAddress {
     param([string]$IPAddress)
-
+    
     # Check IPv4 - GOLINE range: 185.54.80.0/22
     if ($IPAddress -match "^(\d+)\.(\d+)\.(\d+)\.(\d+)$") {
         $octets = $IPAddress -split '\.'
         $firstOctet = [int]$octets[0]
         $secondOctet = [int]$octets[1]
         $thirdOctet = [int]$octets[2]
-
+        
         # 185.54.80.0/22 includes 185.54.80.0 - 185.54.83.255
         if ($firstOctet -eq 185 -and $secondOctet -eq 54 -and $thirdOctet -ge 80 -and $thirdOctet -le 83) {
             return $true
         }
     }
-
+    
     # Check IPv6 - GOLINE range: 2A02:4460::/32
     if ($IPAddress -match "^2[aA]02:4460:") {
         return $true
     }
-
+    
     return $false
 }
 
 # Function to check if IP is internal/private
 function Test-InternalIPAddress {
     param([string]$IPAddress)
-
+    
     # Check RFC1918 private IPv4 addresses
-    if ($IPAddress -match "^10\." -or
+    if ($IPAddress -match "^10\." -or 
         $IPAddress -match "^192\.168\." -or
         ($IPAddress -match "^172\.(\d+)\." -and [int]$Matches[1] -ge 16 -and [int]$Matches[1] -le 31) -or
         $IPAddress -match "^127\.") {
         return $true
     }
-
+    
     # Check IPv6 private/link-local addresses
     if ($IPAddress -match "^[fF][eE]80:" -or    # Link-local
         $IPAddress -match "^[fF][cCdD]" -or      # Unique local
-        $IPAddress -eq "::1") {                  # Loopback
+        $IPAddress -eq "::1")                  # Loopback
+    {
         return $true
     }
-
+    
     # Check if it's a GOLINE IP
     if (Test-GOLINEIPAddress $IPAddress) {
         return $true
     }
-
+    
     return $false
 }
 
 # Logging function
 function Write-SecurityLog {
     param([string]$Message, [string]$Level = "INFO", [object]$Data = $null)
-
+    
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     "$timestamp [$Level] $Message" | Add-Content -Path $LogFile
-
+    
     $color = switch ($Level) {
         "ALERT" { "Red" }
         "WARNING" { "Yellow" }
@@ -1637,16 +1315,16 @@ function Write-SecurityLog {
         "SUCCESS" { "Green" }
         default { "White" }
     }
-
+    
     Write-Host $Message -ForegroundColor $color
-
+    
     # Store in results
     $entry = @{
         Time = $timestamp
         Message = $Message
         Data = $Data
     }
-
+    
     switch ($Level) {
         "ALERT" { $global:SecurityResults.Alerts += $entry }
         "WARNING" { $global:SecurityResults.Warnings += $entry }
@@ -1654,13 +1332,12 @@ function Write-SecurityLog {
     }
 }
 
-Write-SecurityLog "=== SharePoint Security Monitoring Started (v3.9 - Advanced DLL Validation) ===" "INFO"
-Write-SecurityLog "Enhanced with real-time threat detection and performance optimizations" "INFO"
+Write-SecurityLog "=== SharePoint Security Monitoring Started (v4.0 - Enhanced DLL Management) ===" "INFO"
+Write-SecurityLog "Enhanced with real-time threat detection and performance optimizations (v4.0)" "INFO"
 Write-SecurityLog "Advanced threat detection for APT groups and post-exploitation tools" "INFO"
 Write-SecurityLog "Performance optimizations: Incremental log reading, event caching, smart bookmarks" "INFO"
 Write-SecurityLog "Auto email alerts: Enabled for warnings and critical alerts" "INFO"
 Write-SecurityLog "DLL management: $(if ($AutoApproveDLLs) { 'Auto-approval enabled' } else { 'Manual approval mode' })" "INFO"
-Write-SecurityLog "v3.9: Advanced DLL validation with pattern analysis and security checks" "INFO"
 Write-SecurityLog "Timezone: $($scriptTimeZone.DisplayName)" "INFO"
 
 # 0. CHECK SHAREPOINT VERSION FOR EOL
@@ -1671,7 +1348,7 @@ try {
     if ($spFarm) {
         $spVersion = $spFarm.BuildVersion
         Write-SecurityLog "SharePoint version: $($spVersion.ToString())" "INFO"
-
+        
         # SharePoint 2013 is version 15, 2010 is 14, etc.
         if ($spVersion.Major -le 15) {
             Write-SecurityLog "CRITICAL: End-of-Life SharePoint version detected! Version $($spVersion.Major) should be disconnected from internet!" "ALERT"
@@ -1679,11 +1356,11 @@ try {
         } else {
             $global:SecurityResults.Statistics.IsEOL = $false
         }
-
+        
         # Store version details for patch checking
         $global:SecurityResults.Statistics.SharePointVersion = $spVersion
         $global:SecurityResults.Statistics.SharePointMajor = $spVersion.Major
-
+        
         # For SharePoint 2019, show how to check and update
         if ($spVersion.Major -eq 16 -and $spVersion.Build -ge 10000 -and $spVersion.Build -lt 10398) {
             Write-SecurityLog "" "INFO"
@@ -1725,24 +1402,24 @@ $missingPatches = @()
 # Check installed updates
 try {
     $installedUpdates = Get-HotFix | Select-Object -ExpandProperty HotFixID
-
+    
     if ($global:SecurityResults.Statistics.SharePointMajor) {
         $versionKey = $global:SecurityResults.Statistics.SharePointMajor.ToString()
-
+        
         # Check if it's subscription edition
         if ($global:SecurityResults.Statistics.SharePointVersion.Build -ge 16000) {
             $versionKey = "Subscription"
         }
-
+        
         if ($versionKey -eq "16") {
             # Distinguish between SharePoint 2016 and 2019 based on build number
             if ($global:SecurityResults.Statistics.SharePointVersion.Build -ge 10000) {
                 # SharePoint 2019 has build 16.0.10xxx and higher
                 Write-SecurityLog "Detected SharePoint 2019 (Build: $($global:SecurityResults.Statistics.SharePointVersion.Build))" "INFO"
-
+                
                 # For SharePoint 2019, check build instead of KB patches
                 $currentVersion = $global:SecurityResults.Statistics.SharePointVersion
-
+                
                 # Mapping of SharePoint 2019 builds to CUs
                 $sp2019CUMapping = @{
                     "16.0.10337.12109" = "RTM (March 2019)"
@@ -1759,7 +1436,7 @@ try {
                     "16.0.10375.20000" = "February 2020 CU"
                     "16.0.10398.20000" = "December 2023 CU (Security Update)"
                 }
-
+                
                 # Find installed CU
                 $installedCU = "Unknown"
                 foreach ($build in $sp2019CUMapping.Keys | Sort-Object -Descending) {
@@ -1768,9 +1445,9 @@ try {
                         break
                     }
                 }
-
+                
                 Write-SecurityLog "SharePoint 2019 current CU: $installedCU" "INFO"
-
+                
                 if ($currentVersion -ge $sharePoint2019MinimumBuild) {
                     Write-SecurityLog "SharePoint 2019 build $currentVersion includes security fixes (minimum required: $sharePoint2019MinimumBuild)" "SUCCESS"
                     $installedPatches += "Build $currentVersion - $installedCU"
@@ -1782,7 +1459,7 @@ try {
                 # SharePoint 2016 has build 16.0.4xxx to 16.0.5xxx
                 $patchList = $requiredPatches["16"]["2016"]
                 Write-SecurityLog "Detected SharePoint 2016 (Build: $($global:SecurityResults.Statistics.SharePointVersion.Build))" "INFO"
-
+                
                 foreach ($patch in $patchList) {
                     if ($installedUpdates -contains $patch) {
                         $installedPatches += $patch
@@ -1829,21 +1506,21 @@ $criticalDateEnd = Get-Date "2023-09-30 23:59:59"
 $earlyExploitDateStart = Get-Date "2023-07-01"
 
 # OPTIMIZED: Adjust days to scan based on parameters
-$daysToScan = if ($FullHistoricalScan) {
+$daysToScan = if ($FullHistoricalScan) { 
     30  # Full historical scan
     Write-SecurityLog "  Full historical scan mode - scanning 30 days of logs" "INFO"
-} elseif ($QuickScan) {
+} elseif ($QuickScan) { 
     0.5  # 12 hours for quick scan
     Write-SecurityLog "  Quick scan mode - scanning last 12 hours" "INFO"
-} else {
+} else { 
     $MaxDaysToScan  # Use parameter value (default 2)
     Write-SecurityLog "  Standard scan mode - scanning last $MaxDaysToScan days" "INFO"
 }
 
 Write-SecurityLog "  Scanning IIS logs from last $daysToScan days..." "INFO"
 
-$recentIISLogs = Get-ChildItem $IISLogPath -Recurse -Filter "*.log" -ErrorAction SilentlyContinue |
-    Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-$daysToScan)} |
+$recentIISLogs = Get-ChildItem $IISLogPath -Recurse -Filter "*.log" -ErrorAction SilentlyContinue | 
+    Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-$daysToScan)} | 
     Sort-Object LastWriteTime -Descending
 
 Write-SecurityLog "  Found $($recentIISLogs.Count) log files to scan" "INFO"
@@ -1854,51 +1531,51 @@ $cachedEventsSkipped = 0
 foreach ($log in $recentIISLogs) {
     $logCount++
     Write-Progress -Activity "Scanning IIS Logs" -Status "Processing $($log.Name)" -PercentComplete (($logCount / $recentIISLogs.Count) * 100)
-
+    
     # Get bookmark for this log
     $bookmark = Get-LogBookmark -LogFile $log.FullName
-
+    
     # Skip if file hasn't changed since last read
     if ($log.LastWriteTime -le $bookmark.LastReadTime -and $bookmark.FileSize -eq $log.Length) {
         Write-SecurityLog "  Skipping unchanged log: $($log.Name)" "INFO"
         continue
     }
-
+    
     Write-SecurityLog "  Scanning: $($log.Name) ($('{0:N2}' -f ($log.Length / 1MB)) MB)" "INFO"
-
+    
     # OPTIMIZED: Read log once for all patterns
     $allPatterns = @(
         $ToolPanePattern,
         $SignOutPattern,
         ".*\.devtunnels\.ms"
     )
-
+    
     $allMatches = Read-LogIncremental -LogPath $log.FullName -Patterns $allPatterns -Bookmark $bookmark
-
+    
     # Process matches by pattern type
     foreach ($match in $allMatches) {
         $line = $match.Line
         $totalEventsProcessed++
-
+        
         # Create event hash to check if already processed
         $crypto = [System.Security.Cryptography.SHA256]::Create()
         $eventBytes = [System.Text.Encoding]::UTF8.GetBytes($line)
         $hashBytes = $crypto.ComputeHash($eventBytes)
         $eventHashString = [BitConverter]::ToString($hashBytes).Replace("-", "")
         $crypto.Dispose()
-
+        
         # Determine event type based on pattern
         $eventType = if ($match.Pattern -match "ToolPane") { "ToolPane" }
                      elseif ($match.Pattern -match "SignOut") { "SignOut" }
                      elseif ($match.Pattern -match "devtunnels") { "DevTunnels" }
                      else { "Unknown" }
-
+        
         # Check if already processed
         if (Test-EventProcessed -EventHash $eventHashString -EventType $eventType) {
             $cachedEventsSkipped++
             continue
         }
-
+        
         # Process ToolPane matches
         if ($eventType -eq "ToolPane") {
             # Extract IP and time from IIS log
@@ -1908,11 +1585,11 @@ foreach ($log in $recentIISLogs) {
                 $clientIP = $Matches[9]
                 $status = $Matches[11]
                 $fullRequest = $line
-
+                
                 # Check if in critical date range
                 $inCriticalPeriod = $logDate -ge $criticalDateStart -and $logDate -le $criticalDateEnd
                 $inEarlyExploit = $logDate -ge $earlyExploitDateStart -and $logDate -lt $criticalDateStart
-
+                
                 if ($inCriticalPeriod) {
                     $CVEIndicators.CriticalPeriodActivity += @{
                         Type = "ToolPane"
@@ -1921,11 +1598,11 @@ foreach ($log in $recentIISLogs) {
                         Status = $status
                     }
                 }
-
+                
                 # Flag as critical if from known attacker IPs
                 $isKnownAttacker = $clientIP -in $KnownAttackerIPs
                 $isInternal = Test-InternalIPAddress $clientIP
-
+                
                 # Determine threat actor based on timing and IP
                 $threatActor = "Unknown"
                 if ($inEarlyExploit) {
@@ -1933,7 +1610,7 @@ foreach ($log in $recentIISLogs) {
                 } elseif ($inCriticalPeriod -and $clientIP -in @("131.226.2.6", "65.38.121.198")) {
                     $threatActor = "Advanced Threat Actor"
                 }
-
+                
                 # NEW v3.8: Track all attacks comprehensively
                 $attackDetails = @{
                     Type = "CVE-2023-29357 (ToolPane RCE)"
@@ -1949,9 +1626,9 @@ foreach ($log in $recentIISLogs) {
                     LogFile = $log.Name
                     FullRequest = $fullRequest
                 }
-
+                
                 $CVEIndicators.AllAttacks += $attackDetails
-
+                
                 # Categorize based on IP type
                 if ($isInternal) {
                     # Suspicious internal activity
@@ -1963,11 +1640,11 @@ foreach ($log in $recentIISLogs) {
                         Request = $fullRequest
                         LogFile = $log.Name
                         InCriticalPeriod = $inCriticalPeriod
-                        Count = if ($CVEIndicators.InternalSuspiciousActivity.ContainsKey($clientIP)) {
-                            $CVEIndicators.InternalSuspiciousActivity[$clientIP].Count + 1
+                        Count = if ($CVEIndicators.InternalSuspiciousActivity.ContainsKey($clientIP)) { 
+                            $CVEIndicators.InternalSuspiciousActivity[$clientIP].Count + 1 
                         } else { 1 }
                     }
-
+                    
                     Write-SecurityLog "SUSPICIOUS: Internal IP accessing ToolPane.aspx: $clientIP" "WARNING"
                 } else {
                     # External attack
@@ -1981,10 +1658,10 @@ foreach ($log in $recentIISLogs) {
                         ThreatActor = $threatActor
                         LogFile = $log.Name
                     }
-
+                    
                     if ($isKnownAttacker) {
                         Write-SecurityLog "CRITICAL: Known attacker IP exploiting ToolPane.aspx: $clientIP ($threatActor)" "ALERT"
-
+                        
                         # Track threat actor activity
                         $CVEIndicators.ThreatActorActivity += @{
                             Actor = $threatActor
@@ -2003,13 +1680,13 @@ foreach ($log in $recentIISLogs) {
             if ($line -match '(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)') {
                 $timeValue = "$($Matches[1]) $($Matches[2])"
                 $clientIP = $Matches[3]
-
+                
                 $CVEIndicators.SignOutExploits += @{
                     Time = $timeValue
                     ClientIP = $clientIP
                     LogFile = $log.Name
                 }
-
+                
                 # NEW v3.8: Track attack
                 $CVEIndicators.AllAttacks += @{
                     Type = "SignOut.aspx Access"
@@ -2021,7 +1698,7 @@ foreach ($log in $recentIISLogs) {
                     IsInternal = Test-InternalIPAddress $clientIP
                     LogFile = $log.Name
                 }
-
+                
                 Write-SecurityLog "SUSPICIOUS: SignOut.aspx access detected - potential exploitation vector from $clientIP" "WARNING"
             }
         }
@@ -2030,14 +1707,14 @@ foreach ($log in $recentIISLogs) {
             if ($line -match '(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2}).*\s+(\S+\.devtunnels\.ms)') {
                 $timeValue = "$($Matches[1]) $($Matches[2])"
                 $c2Domain = $Matches[3]
-
+                
                 $CVEIndicators.C2Communications += @{
                     Time = $timeValue
                     Domain = $c2Domain
                     Type = "DevTunnels"
                     LogFile = $log.Name
                 }
-
+                
                 # NEW v3.8: Track C2 as attack
                 $CVEIndicators.AllAttacks += @{
                     Type = "C2 Communication (DevTunnels)"
@@ -2048,11 +1725,11 @@ foreach ($log in $recentIISLogs) {
                     ThreatActor = "Unknown"
                     LogFile = $log.Name
                 }
-
+                
                 Write-SecurityLog "ALERT: Potential C2 communication detected to $c2Domain" "ALERT"
             }
         }
-
+        
         # Mark as processed
         Add-ProcessedEvent -EventHash $eventHashString -EventType $eventType
     }
@@ -2083,41 +1760,41 @@ $exploitCachedSkipped = 0
 foreach ($log in $recentIISLogs) {
     $logCount++
     Write-Progress -Activity "Checking Exploit Patterns" -Status "Processing $($log.Name)" -PercentComplete (($logCount / $recentIISLogs.Count) * 100)
-
+    
     # Get bookmark for this log
     $bookmark = Get-LogBookmark -LogFile $log.FullName
-
+    
     # Skip if unchanged
     if ($log.LastWriteTime -le $bookmark.LastReadTime -and $bookmark.FileSize -eq $log.Length) {
         continue
     }
-
+    
     # OPTIMIZED: Read log once for all exploit patterns
     $matches = Read-LogIncremental -LogPath $log.FullName -Patterns $ExploitPatterns -Bookmark $bookmark
-
+    
     foreach ($match in $matches) {
         $line = $match.Line
         $pattern = $match.Pattern  # Get which pattern matched
         $exploitEventsProcessed++
-
+        
         # Create event hash
         $crypto = [System.Security.Cryptography.SHA256]::Create()
         $eventBytes = [System.Text.Encoding]::UTF8.GetBytes($line + $pattern)
         $hashBytes = $crypto.ComputeHash($eventBytes)
         $eventHashString = [BitConverter]::ToString($hashBytes).Replace("-", "")
         $crypto.Dispose()
-
+        
         # Check if already processed
         if (Test-EventProcessed -EventHash $eventHashString -EventType "Exploit") {
             $exploitCachedSkipped++
             continue
         }
-
+        
         # Extract IP from log line
         if ($line -match '(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(\S+)') {
             $timeValue = "$($Matches[1]) $($Matches[2])"
             $clientIP = $Matches[3]
-
+            
             # NEW v3.8: Track exploit attempt
             $attackType = switch -Regex ($pattern) {
                 "config" { "Path Traversal to Config" }
@@ -2127,19 +1804,18 @@ foreach ($log in $recentIISLogs) {
                 "MachineKeySection" { "Machine Key Theft Attempt" }
                 default { "Bypass Vulnerability" }
             }
-
+            
             $CVEIndicators.AllAttacks += @{
                 Type = $attackType
                 Time = $timeValue
                 AttackerIP = $clientIP
                 TargetFile = if ($line -match 'GET\s+([^\s]+)') { $Matches[1] } else { "Unknown" }
                 Method = if ($line -match '(GET|POST|PUT|DELETE)') { $Matches[1] } else { "Unknown" }
-                Pattern = $pattern
                 ThreatActor = "Unknown"
                 IsInternal = Test-InternalIPAddress $clientIP
                 LogFile = $log.Name
             }
-
+            
             if (Test-InternalIPAddress $clientIP) {
                 # Suspicious internal activity
                 if (-not $CVEIndicators.InternalSuspiciousActivity.ContainsKey($clientIP)) {
@@ -2150,14 +1826,14 @@ foreach ($log in $recentIISLogs) {
                         Count = 0
                     }
                 }
-
+                
                 $CVEIndicators.InternalSuspiciousActivity[$clientIP].Patterns += @{
                     Pattern = $pattern
                     MatchedString = $line.Substring(0, [Math]::Min($line.Length, 200))
                     Time = $timeValue
                 }
                 $CVEIndicators.InternalSuspiciousActivity[$clientIP].Count++
-
+                
                 Write-SecurityLog "SUSPICIOUS: Internal IP with exploit pattern - $clientIP" "WARNING"
             } else {
                 # External exploit attempt
@@ -2169,7 +1845,7 @@ foreach ($log in $recentIISLogs) {
                 }
                 Write-SecurityLog "ALERT: External exploit attempt from $clientIP" "ALERT"
             }
-
+            
             # Mark as processed
             Add-ProcessedEvent -EventHash $eventHashString -EventType "Exploit"
         }
@@ -2191,14 +1867,14 @@ $suspiciousConfigAccess = Get-WinEvent -FilterHashtable @{
     ID = 4663  # Object access
     StartTime = (Get-Date).AddHours(-24)
 } -ErrorAction SilentlyContinue | Where-Object {
-    $_.Message -match "web\.config" -and
+    $_.Message -match "web\.config" -and 
     $_.Message -notmatch "iisreset|w3wp\.exe"
 }
 
 if ($suspiciousConfigAccess) {
     $CVEIndicators.MachineKeyTheft += $suspiciousConfigAccess
     Write-SecurityLog "WARNING: Suspicious access to web.config detected" "WARNING"
-
+    
     # NEW v3.8: Track as attack
     foreach ($access in $suspiciousConfigAccess) {
         $CVEIndicators.AllAttacks += @{
@@ -2208,7 +1884,7 @@ if ($suspiciousConfigAccess) {
             TargetFile = "web.config"
             Method = "File Access"
             ThreatActor = "Unknown"
-            IsInternal = $true
+            Severity = "Critical"
         }
     }
 }
@@ -2227,7 +1903,7 @@ foreach ($path in $debugDevPath) {
             Path = $path
             Modified = (Get-Item $path).LastWriteTime
         }
-
+        
         # NEW v3.8: Track as critical attack
         $CVEIndicators.AllAttacks += @{
             Type = "Machine Key Theft (debug_dev.js)"
@@ -2282,7 +1958,7 @@ if ($esetService -and $esetService.Status -eq "Running") {
                         Path = "$regKey\Real-Time Protection"
                         Time = Get-Date
                     }
-
+                    
                     # NEW v3.8: Track as attack
                     $CVEIndicators.AllAttacks += @{
                         Type = "Defender Tampering - Real-Time Protection Disabled"
@@ -2294,7 +1970,7 @@ if ($esetService -and $esetService.Status -eq "Running") {
                         Severity = "Critical"
                     }
                 }
-
+                
                 # Check for disabled behavior monitoring
                 $behaviorDisabled = (Get-ItemProperty -Path "$regKey\Real-Time Protection" -Name "DisableBehaviorMonitoring" -ErrorAction SilentlyContinue).DisableBehaviorMonitoring
                 if ($behaviorDisabled -eq 1) {
@@ -2325,7 +2001,7 @@ if ($esetService -and $esetService.Status -eq "Running") {
             Events = $defenderTamperEvents.Count
             Time = Get-Date
         }
-
+        
         # NEW v3.8: Track each tampering event as attack
         foreach ($event in $defenderTamperEvents) {
             $CVEIndicators.AllAttacks += @{
@@ -2359,7 +2035,7 @@ if ($gpoEvents) {
         $_.Message -match "batch|script|ransomware|lockbit|warlock|scheduled task" -or
         $_.TimeCreated -ge $criticalDateStart
     }
-
+    
     if ($suspiciousGPO) {
         Write-SecurityLog "WARNING: Suspicious Group Policy modifications detected" "WARNING"
         $CVEIndicators.GPOModifications += @{
@@ -2367,7 +2043,7 @@ if ($gpoEvents) {
             Events = $suspiciousGPO | Select-Object -First 5
             Time = Get-Date
         }
-
+        
         # NEW v3.8: Track GPO changes as attacks
         foreach ($gpo in $suspiciousGPO | Select-Object -First 10) {
             $CVEIndicators.AllAttacks += @{
@@ -2392,23 +2068,23 @@ Start-PerformanceTimer "W3WP Process Monitoring"
 $w3wpProcesses = Get-Process -Name w3wp -ErrorAction SilentlyContinue
 foreach ($w3wp in $w3wpProcesses) {
     # Check for suspicious child processes using CIM (more efficient)
-    $childProcesses = Get-CimInstance Win32_Process -Filter "ParentProcessId=$($w3wp.Id)" |
+    $childProcesses = Get-CimInstance Win32_Process -Filter "ParentProcessId=$($w3wp.Id)" | 
         Select-Object Name, ProcessId, CommandLine, CreationDate
-
+    
     foreach ($child in $childProcesses) {
         if ($child.Name -match '^(cmd|powershell|net|certutil|rundll32|wmic|bitsadmin|PsExec|PsExec64)\.exe$') {
             Write-SecurityLog "CRITICAL: w3wp.exe spawned suspicious process: $($child.Name)" "ALERT"
-
+            
             # Try to get command line
             $commandLine = $child.CommandLine
             if ($commandLine) {
                 Write-SecurityLog "  Command line: $commandLine" "ALERT"
-
+                
                 # Check for base64 encoded commands
                 if ($commandLine -match '-[Ee]nc(oded)?[Cc]ommand\s+([A-Za-z0-9+/=]+)') {
                     Write-SecurityLog "  Base64 encoded command detected!" "ALERT"
                 }
-
+                
                 # Check for Mimikatz patterns
                 if ($commandLine -match 'sekurlsa|logonpasswords|privilege::debug|crypto::certificates|lsadump') {
                     Write-SecurityLog "  CRITICAL: Mimikatz credential theft detected!" "ALERT"
@@ -2418,7 +2094,7 @@ foreach ($w3wp in $w3wpProcesses) {
                         CommandLine = $commandLine
                         Time = Get-Date
                     }
-
+                    
                     # NEW v3.8: Track as critical attack
                     $CVEIndicators.AllAttacks += @{
                         Type = "Mimikatz Credential Theft"
@@ -2431,7 +2107,7 @@ foreach ($w3wp in $w3wpProcesses) {
                         Severity = "Critical"
                     }
                 }
-
+                
                 # Check for PsExec
                 if ($child.Name -match 'PsExec') {
                     Write-SecurityLog "  CRITICAL: PsExec lateral movement tool detected!" "ALERT"
@@ -2441,7 +2117,7 @@ foreach ($w3wp in $w3wpProcesses) {
                         CommandLine = $commandLine
                         Time = Get-Date
                     }
-
+                    
                     # NEW v3.8: Track as attack
                     $CVEIndicators.AllAttacks += @{
                         Type = "PsExec Lateral Movement"
@@ -2476,7 +2152,7 @@ if ($wmiEvents) {
         Events = $wmiEvents.Count
         Time = Get-Date
     }
-
+    
     # NEW v3.8: Track WMI attacks
     foreach ($wmiEvent in $wmiEvents | Select-Object -First 5) {
         $CVEIndicators.AllAttacks += @{
@@ -2503,7 +2179,7 @@ $suspiciousLsassEvents = @()
 # Define legitimate processes that commonly access LSASS
 $legitimateProcesses = @(
     "svchost.exe",
-    "services.exe",
+    "services.exe", 
     "wininit.exe",
     "lsm.exe",
     "winlogon.exe",
@@ -2548,7 +2224,7 @@ if ($sysmonLog) {
         $sourceProcess = ""
         $targetProcess = ""
         $accessMask = ""
-
+        
         # Extract process information from Sysmon event
         if ($event.Message -match "SourceImage:\s*([^\r\n]+)") {
             $sourceProcess = [System.IO.Path]::GetFileName($Matches[1])
@@ -2559,11 +2235,11 @@ if ($sysmonLog) {
         if ($event.Message -match "GrantedAccess:\s*([^\r\n]+)") {
             $accessMask = $Matches[1]
         }
-
+        
         # Check if it's a suspicious access
         $isSuspicious = $false
         $reason = ""
-
+        
         # Check if source is a suspicious process
         if ($sourceProcess -in $suspiciousProcesses) {
             $isSuspicious = $true
@@ -2577,7 +2253,7 @@ if ($sysmonLog) {
                 $reason = "Unknown process with memory read access: $sourceProcess"
             }
         }
-
+        
         if ($isSuspicious) {
             $suspiciousLsassEvents += @{
                 Time = $event.TimeCreated
@@ -2586,7 +2262,7 @@ if ($sysmonLog) {
                 Reason = $reason
                 EventData = $event
             }
-
+            
             # NEW v3.8: Track LSASS access as attack
             $CVEIndicators.AllAttacks += @{
                 Type = "LSASS Memory Access"
@@ -2600,7 +2276,7 @@ if ($sysmonLog) {
             }
         }
     }
-
+    
     $lsassAccessEvents += $sysmonLog
 }
 
@@ -2612,7 +2288,7 @@ $securityLsassEvents = Get-WinEvent -FilterHashtable @{
 } -ErrorAction SilentlyContinue | Where-Object {
     $_.Message -match "lsass\.exe" -and
     $_.Message -notmatch "Accesses:\s*%%4416" -and  # Exclude ReadControl only
-    $_.Message -notmatch "Accesses:\s*%%4417" -and  # Exclude WriteDac only
+    $_.Message -notmatch "Accesses:\s*%%4417" -and  # Exclude WriteDac only  
     $_.Message -notmatch "Accesses:\s*%%4418" -and  # Exclude WriteOwner only
     $_.Message -notmatch "Accesses:\s*%%4423"       # Exclude generic read attributes
 }
@@ -2620,17 +2296,17 @@ $securityLsassEvents = Get-WinEvent -FilterHashtable @{
 if ($securityLsassEvents) {
     foreach ($event in $securityLsassEvents) {
         $processName = ""
-
+        
         # Extract process name from Security event
         if ($event.Message -match "Process Name:\s*([^\r\n]+)") {
             $fullPath = $Matches[1].Trim()
             $processName = [System.IO.Path]::GetFileName($fullPath)
         }
-
+        
         # Check if suspicious
-        if ($processName -in $suspiciousProcesses -or
+        if ($processName -in $suspiciousProcesses -or 
             ($processName -and $processName -notin $legitimateProcesses)) {
-
+            
             # Check for specific dangerous access patterns
             if ($event.Message -match "Accesses:.*Process_VM_Read|Process_VM_Write|Process_DUP_HANDLE|Process_Query_Information") {
                 $suspiciousLsassEvents += @{
@@ -2640,7 +2316,7 @@ if ($securityLsassEvents) {
                     Reason = "Security event: Suspicious process accessing LSASS"
                     EventData = $event
                 }
-
+                
                 # NEW v3.8: Track as attack
                 $CVEIndicators.AllAttacks += @{
                     Type = "LSASS Access Attempt"
@@ -2655,7 +2331,7 @@ if ($securityLsassEvents) {
             }
         }
     }
-
+    
     $lsassAccessEvents += $securityLsassEvents
 }
 
@@ -2673,20 +2349,20 @@ $credTheftPatterns = Get-WinEvent -FilterHashtable @{
 # Analyze results
 if ($suspiciousLsassEvents.Count -gt 0) {
     Write-SecurityLog "WARNING: Suspicious LSASS memory access detected!" "WARNING"
-
+    
     # Group by source process
     $groupedEvents = $suspiciousLsassEvents | Group-Object -Property SourceProcess
-
+    
     foreach ($group in $groupedEvents) {
         Write-SecurityLog "  Suspicious process: $($group.Name) - $($group.Count) events" "WARNING"
-
+        
         # Show first few events
         $group.Group | Select-Object -First 3 | ForEach-Object {
             Write-SecurityLog "    Time: $($_.Time), Reason: $($_.Reason)" "WARNING"
         }
     }
-
-$CVEIndicators.LSASSAccess += @{
+    
+    $CVEIndicators.LSASSAccess += @{
         Count = $suspiciousLsassEvents.Count
         Events = $suspiciousLsassEvents | Select-Object -First 5
         Time = Get-Date
@@ -2724,24 +2400,24 @@ if ($remoteThreadEvents) {
     $suspiciousThreads = $remoteThreadEvents | Where-Object {
         $_.Message -match "w3wp\.exe|svchost\.exe|lsass\.exe"
     }
-
+    
     if ($suspiciousThreads) {
         Write-SecurityLog "WARNING: Potential reflective DLL injection detected" "WARNING"
         $CVEIndicators.ReflectiveInjection += @{
             Count = $suspiciousThreads.Count
-            TargetProcesses = @($suspiciousThreads | ForEach-Object {
+            TargetProcesses = @($suspiciousThreads | ForEach-Object { 
                 if ($_.Message -match "TargetImage:\s*([^\s]+)") { $Matches[1] }
             } | Select-Object -Unique)
             Time = Get-Date
         }
-
+        
         # NEW v3.8: Track injection attempts
         foreach ($thread in $suspiciousThreads | Select-Object -First 5) {
             $targetProcess = ""
             if ($thread.Message -match "TargetImage:\s*([^\s]+)") {
                 $targetProcess = [System.IO.Path]::GetFileName($Matches[1])
             }
-
+            
             $CVEIndicators.AllAttacks += @{
                 Type = "Reflective DLL Injection"
                 Time = $thread.TimeCreated
@@ -2761,11 +2437,11 @@ Stop-PerformanceTimer "Reflective DLL Injection Detection"
 if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
     Write-SecurityLog "Managing DLL baseline..." "INFO"
     Start-PerformanceTimer "DLL Baseline Management"
-
+    
     $baselineFile = "$BaselinePath\DLL_Baseline.json"
     $changeDetected = $false
     $pendingDLLs = @{ PendingDLLs = @() }  # NEW v3.8
-
+    
     # Load pending DLLs if exists
     if (Test-Path $PendingDLLFile) {
         try {
@@ -2774,13 +2450,12 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
             Write-SecurityLog "Could not load pending DLLs file" "INFO"
         }
     }
-
+    
     # Create new baseline if requested
     if ($CreateBaseline) {
         Write-SecurityLog "Creating new DLL baseline..." "INFO"
         $dllInventory = @{}
-        $skippedDuplicates = 0  # NEW v3.9
-
+        
         $WebPaths = @(
             "C:\inetpub\wwwroot\wss\VirtualDirectories",
             "C:\Windows\Temp",
@@ -2790,28 +2465,16 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
             "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\TEMPLATE\LAYOUTS",
             "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files"
         )
-
+        
         foreach ($path in $WebPaths) {
             if (Test-Path $path) {
                 Get-ChildItem -Path $path -Filter "*.dll" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
                     try {
-                        $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
-
-                        # NEW v3.9: Check if this hash already exists in inventory
-                        $existingEntry = $dllInventory.Values | Where-Object { $_.Hash -eq $hash } | Select-Object -First 1
-
-                        if (-not $existingEntry) {
-                            $dllInventory[$_.FullName] = @{
-                                Hash = $hash
-                                Size = $_.Length
-                                Created = $_.CreationTime.ToString("yyyy-MM-dd HH:mm:ss")
-                                Modified = $_.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
-                            }
-                        } else {
-                            $skippedDuplicates++
-                            if ($VerboseDLL) {
-                                Write-Host "  [Skip Duplicate] $($_.Name) - Same hash as existing entry" -ForegroundColor Gray
-                            }
+                        $dllInventory[$_.FullName] = @{
+                            Hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+                            Size = $_.Length
+                            Created = $_.CreationTime.ToString("yyyy-MM-dd HH:mm:ss")
+                            Modified = $_.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
                         }
                     } catch {
                         Write-SecurityLog "Could not baseline file: $($_.FullName)" "WARNING"
@@ -2819,15 +2482,15 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                 }
             }
         }
-
+        
         # Backup old baseline if exists
         if (Test-Path $baselineFile) {
             Backup-CriticalFile -FilePath $baselineFile
             Write-SecurityLog "Previous baseline backed up" "INFO"
         }
-
+        
         $dllInventory | ConvertTo-Json -Depth 3 | Out-File $baselineFile -Force
-        Write-SecurityLog "DLL baseline created with $($dllInventory.Count) unique files ($skippedDuplicates duplicates skipped)" "SUCCESS"
+        Write-SecurityLog "DLL baseline created with $($dllInventory.Count) files" "SUCCESS"
     }
     # Compare with baseline if exists and not creating new one
     elseif (Test-Path $baselineFile) {
@@ -2835,12 +2498,12 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
         $baselineJson = Get-Content $baselineFile -Raw | ConvertFrom-Json
         $baseline = @{}
         $baselineJson.PSObject.Properties | ForEach-Object { $baseline[$_.Name] = $_.Value }
-
+        
         $currentDLLs = @{}
         $newDLLs = @()
         $modifiedDLLs = @()
         $deletedDLLs = @()
-
+        
         # Scan current DLLs
         $WebPaths = @(
             "C:\inetpub\wwwroot\wss\VirtualDirectories",
@@ -2851,12 +2514,12 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
             "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\TEMPLATE\LAYOUTS",
             "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files"
         )
-
+        
         foreach ($path in $WebPaths) {
             if (Test-Path $path) {
                 Get-ChildItem -Path $path -Filter "*.dll" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
                     $currentDLLs[$_.FullName] = $_
-
+                    
                     if ($null -eq $baseline[$_.FullName]) {
                         # New DLL found
                         $newDLLs += $_
@@ -2877,7 +2540,7 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                 }
             }
         }
-
+        
         # Check for deleted DLLs
         foreach ($baselinePath in $baseline.Keys) {
             if (-not $currentDLLs.ContainsKey($baselinePath)) {
@@ -2885,13 +2548,13 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                 $changeDetected = $true
             }
         }
-
+        
         # Report findings
         if ($newDLLs.Count -gt 0) {
             Write-SecurityLog "WARNING: $($newDLLs.Count) new DLLs detected since baseline!" "WARNING"
             foreach ($dll in $newDLLs | Select-Object -First 10) {
                 # Check if suspicious
-                $dllCheck = Test-SuspiciousDLL -File $dll -BasePath $dll.DirectoryName
+                $dllCheck = Test-SuspiciousDLL -File $dll -BasePath $path
                 if ($dllCheck.IsSuspicious) {
                     Write-SecurityLog "  NEW SUSPICIOUS DLL: $($dll.FullName)" "ALERT"
                     $CVEIndicators.DLLPayloads += @{
@@ -2904,7 +2567,7 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                         Size = $dll.Length
                         Hash = (Get-FileHash $dll.FullName -Algorithm SHA256).Hash
                     }
-
+                    
                     # NEW v3.8: Track DLL as attack
                     $CVEIndicators.AllAttacks += @{
                         Type = "Suspicious DLL Deployment"
@@ -2917,7 +2580,7 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                         ThreatActor = "Unknown"
                         Severity = $dllCheck.Severity
                     }
-
+                    
                     # NEW v3.8: Add to pending if can auto-approve
                     if ($dllCheck.CanAutoApprove -and -not $dllCheck.IsApproved) {
                         # Get signature info
@@ -2931,7 +2594,7 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                                 }
                             }
                         } catch {}
-
+                        
                         $pendingDLLs.PendingDLLs += @{
                             Name = $dll.Name
                             Path = $dll.FullName
@@ -2950,7 +2613,7 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                 }
             }
         }
-
+        
         if ($modifiedDLLs.Count -gt 0) {
             Write-SecurityLog "ALERT: $($modifiedDLLs.Count) DLLs modified since baseline!" "ALERT"
             foreach ($mod in $modifiedDLLs | Select-Object -First 10) {
@@ -2958,7 +2621,7 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                 # Critical DLLs should never be modified
                 if ($mod.File.Name -match "Microsoft\.SharePoint|System\.Web") {
                     Write-SecurityLog "    CRITICAL: Core DLL modification detected!" "ALERT"
-
+                    
                     # NEW v3.8: Track modification as attack
                     $CVEIndicators.AllAttacks += @{
                         Type = "Core DLL Tampering"
@@ -2974,40 +2637,17 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                 }
             }
         }
-
+        
         if ($deletedDLLs.Count -gt 0) {
             Write-SecurityLog "INFO: $($deletedDLLs.Count) DLLs deleted since baseline" "INFO"
         }
-
-        # NEW v3.9: Store details for report
-        $global:SecurityResults.ModifiedDLLDetails = $modifiedDLLs | Select-Object -Property @{
-            Name = 'Path'; Expression = { $_.File.FullName }
-        }, @{
-            Name = 'Name'; Expression = { $_.File.Name }
-        }, @{
-            Name = 'OldModified'; Expression = { $_.OldModified }
-        }, @{
-            Name = 'NewModified'; Expression = { $_.File.LastWriteTime }
-        }, @{
-            Name = 'Size'; Expression = { '{0:N2} KB' -f ($_.File.Length / 1KB) }
-        }
-
-        $global:SecurityResults.NewDLLDetails = $newDLLs | Select-Object -Property @{
-            Name = 'Path'; Expression = { $_.FullName }
-        }, @{
-            Name = 'Name'; Expression = { $_.Name }
-        }, @{
-            Name = 'Created'; Expression = { $_.CreationTime }
-        }, @{
-            Name = 'Size'; Expression = { '{0:N2} KB' -f ($_.Length / 1KB) }
-        }
-
+        
         # Store statistics
         $global:SecurityResults.Statistics.BaselineNewDLLs = if ($CreateBaseline) { 0 } else { $newDLLs.Count }
         $global:SecurityResults.Statistics.BaselineModifiedDLLs = if ($CreateBaseline) { 0 } else { $modifiedDLLs.Count }
         $global:SecurityResults.Statistics.BaselineDeletedDLLs = if ($CreateBaseline) { 0 } else { $deletedDLLs.Count }
         $global:SecurityResults.Statistics.BaselineChangeDetected = if ($CreateBaseline) { $false } else { $changeDetected }
-
+        
         # NEW v3.8: Save pending DLLs
         if ($pendingDLLs.PendingDLLs.Count -gt 0) {
             $pendingDLLs | ConvertTo-Json -Depth 3 | Out-File $PendingDLLFile -Force
@@ -3019,10 +2659,9 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
         # Auto-create baseline if it doesn't exist
         Write-SecurityLog "No DLL baseline found. Creating initial baseline automatically..." "INFO"
         Write-SecurityLog "This is a one-time operation to establish the baseline for future comparisons." "INFO"
-
+        
         $dllInventory = @{}
-        $skippedDuplicates = 0  # NEW v3.9
-
+        
         $WebPaths = @(
             "C:\inetpub\wwwroot\wss\VirtualDirectories",
             "C:\Windows\Temp",
@@ -3032,25 +2671,16 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
             "C:\Program Files\Common Files\Microsoft Shared\Web Server Extensions\15\TEMPLATE\LAYOUTS",
             "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Temporary ASP.NET Files"
         )
-
+        
         foreach ($path in $WebPaths) {
             if (Test-Path $path) {
                 Get-ChildItem -Path $path -Filter "*.dll" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
                     try {
-                        $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
-
-                        # NEW v3.9: Check for duplicates
-                        $existingEntry = $dllInventory.Values | Where-Object { $_.Hash -eq $hash } | Select-Object -First 1
-
-                        if (-not $existingEntry) {
-                            $dllInventory[$_.FullName] = @{
-                                Hash = $hash
-                                Size = $_.Length
-                                Created = $_.CreationTime.ToString("yyyy-MM-dd HH:mm:ss")
-                                Modified = $_.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
-                            }
-                        } else {
-                            $skippedDuplicates++
+                        $dllInventory[$_.FullName] = @{
+                            Hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+                            Size = $_.Length
+                            Created = $_.CreationTime.ToString("yyyy-MM-dd HH:mm:ss")
+                            Modified = $_.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
                         }
                     } catch {
                         Write-SecurityLog "Could not baseline file: $($_.FullName)" "WARNING"
@@ -3058,11 +2688,11 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
                 }
             }
         }
-
+        
         $dllInventory | ConvertTo-Json -Depth 3 | Out-File $baselineFile -Force
-        Write-SecurityLog "Initial DLL baseline created automatically with $($dllInventory.Count) unique files ($skippedDuplicates duplicates skipped)" "SUCCESS"
+        Write-SecurityLog "Initial DLL baseline created automatically with $($dllInventory.Count) files" "SUCCESS"
         Write-SecurityLog "Future scans will compare against this baseline to detect changes" "INFO"
-
+        
         # Set statistics to show this was a baseline creation
         $global:SecurityResults.Statistics.BaselineNewDLLs = 0
         $global:SecurityResults.Statistics.BaselineModifiedDLLs = 0
@@ -3070,7 +2700,7 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
         $global:SecurityResults.Statistics.BaselineChangeDetected = $false
         $global:SecurityResults.Statistics.BaselineAutoCreated = $true
     }
-
+    
     Stop-PerformanceTimer "DLL Baseline Management"
 } else {
     # If not doing baseline check, set values to 0
@@ -3084,10 +2714,10 @@ if (($CreateBaseline -or -not $QuickScan) -and -not $ManageTasks) {
 if (($CheckIntegrity -or -not $QuickScan) -and -not $ManageTasks) {
     Write-SecurityLog "Checking SharePoint core file integrity..." "INFO"
     Start-PerformanceTimer "SharePoint Integrity Check"
-
+    
     # Integrity baseline file
     $integrityFile = "C:\GOLINE\SharePoint_Monitoring\Baselines\SharePoint_Integrity.json"
-
+    
     # Define critical SharePoint files and their expected hashes
     # NOTE: These hashes should be updated for your specific SharePoint version
     $criticalFiles = @{
@@ -3109,17 +2739,17 @@ if (($CheckIntegrity -or -not $QuickScan) -and -not $ManageTasks) {
             ExpectedHash = ""
         }
     }
-
+    
     # Load or create integrity baseline
     if (Test-Path $integrityFile) {
         try {
             Write-SecurityLog "Loading existing integrity baseline from: $integrityFile" "INFO"
             $integrityJson = Get-Content $integrityFile -Raw | ConvertFrom-Json
             $integrityBaseline = @{}
-
+            
             if ($integrityJson) {
-                $integrityJson.PSObject.Properties | ForEach-Object {
-                    $integrityBaseline[$_.Name] = $_.Value
+                $integrityJson.PSObject.Properties | ForEach-Object { 
+                    $integrityBaseline[$_.Name] = $_.Value 
                 }
                 Write-SecurityLog "Loaded $($integrityBaseline.Count) files from integrity baseline" "INFO"
             }
@@ -3132,23 +2762,35 @@ if (($CheckIntegrity -or -not $QuickScan) -and -not $ManageTasks) {
         Write-SecurityLog "No existing baseline found. Creating SharePoint integrity baseline..." "INFO"
         $integrityBaseline = @{}
     }
-
+    
     $integrityIssues = @()
-
+   
+    # Load or create integrity baseline
+    if (Test-Path $integrityFile) {
+        $integrityJson = Get-Content $integrityFile -Raw | ConvertFrom-Json
+        $integrityBaseline = @{}
+        $integrityJson.PSObject.Properties | ForEach-Object { $integrityBaseline[$_.Name] = $_.Value }
+    } else {
+        Write-SecurityLog "Creating SharePoint integrity baseline..." "INFO"
+        $integrityBaseline = @{}
+    }
+    
+    $integrityIssues = @()
+    
     foreach ($fileName in $criticalFiles.Keys) {
         $fileInfo = $criticalFiles[$fileName]
-
+        
         if (Test-Path $fileInfo.Path) {
             $currentFile = Get-Item $fileInfo.Path
             $currentHash = (Get-FileHash $fileInfo.Path -Algorithm SHA256).Hash
-
+            
             # Check version info
             $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($fileInfo.Path)
-
+            
             if ($null -ne $integrityBaseline[$fileName]) {
                 # Compare with baseline
                 $baseline = $integrityBaseline[$fileName]
-
+                
                 if ($baseline.Hash -ne $currentHash) {
                     $integrityIssues += @{
                         File = $fileName
@@ -3159,12 +2801,12 @@ if (($CheckIntegrity -or -not $QuickScan) -and -not $ManageTasks) {
                         LastModified = $currentFile.LastWriteTime
                         Version = $versionInfo.FileVersion
                     }
-
+                    
                     Write-SecurityLog "CRITICAL: SharePoint file tampering detected: $fileName" "ALERT"
                     Write-SecurityLog "  Expected: $($baseline.Hash.Substring(0,16))..." "ALERT"
                     Write-SecurityLog "  Current:  $($currentHash.Substring(0,16))..." "ALERT"
                     Write-SecurityLog "  Modified: $($currentFile.LastWriteTime)" "ALERT"
-
+                    
                     # NEW v3.8: Track as critical attack
                     $CVEIndicators.AllAttacks += @{
                         Type = "SharePoint Core File Tampering"
@@ -3179,9 +2821,9 @@ if (($CheckIntegrity -or -not $QuickScan) -and -not $ManageTasks) {
                     }
                 }
             } else {
-                # Add to baseline
-                Write-SecurityLog "Adding $fileName to integrity baseline (first time)" "INFO"
-                $integrityBaseline[$fileName] = @{
+				# Add to baseline
+				Write-SecurityLog "Adding $fileName to integrity baseline (first time)" "INFO"
+				$integrityBaseline[$fileName] = @{
                     Hash = $currentHash
                     Size = $currentFile.Length
                     Modified = $currentFile.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
@@ -3190,7 +2832,7 @@ if (($CheckIntegrity -or -not $QuickScan) -and -not $ManageTasks) {
                 }
                 Write-SecurityLog "Added $fileName to integrity baseline" "INFO"
             }
-
+            
             # Check if signed by Microsoft
             $signature = Get-AuthenticodeSignature $fileInfo.Path
             if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notmatch "Microsoft Corporation") {
@@ -3211,23 +2853,23 @@ if (($CheckIntegrity -or -not $QuickScan) -and -not $ManageTasks) {
             }
         }
     }
-
+    
     # Save updated baseline
     Backup-CriticalFile -FilePath $integrityFile
     # Verifica che il percorso sia corretto
-    if ($integrityFile -match "\.dll\\") {
-        # Correggi il percorso se contiene .dll come directory
-        $integrityFile = Join-Path "C:\GOLINE\SharePoint_Monitoring\Baselines" "SharePoint_Integrity.json"
-    }
+	if ($integrityFile -match "\.dll\\") {
+    # Correggi il percorso se contiene .dll come directory
+		$integrityFile = Join-Path "C:\GOLINE\SharePoint_Monitoring\Baselines" "SharePoint_Integrity.json"
+}
 
-    # Crea la directory se non esiste
-    $integrityDir = Split-Path $integrityFile -Parent
-    if (!(Test-Path $integrityDir)) {
-        New-Item -ItemType Directory -Path $integrityDir -Force | Out-Null
-    }
+# Crea la directory se non esiste
+	$integrityDir = Split-Path $integrityFile -Parent
+	if (!(Test-Path $integrityDir)) {
+    New-Item -ItemType Directory -Path $integrityDir -Force | Out-Null
+}
 
-    $integrityBaseline | ConvertTo-Json -Depth 3 | Out-File $integrityFile -Force
-
+$integrityBaseline | ConvertTo-Json -Depth 3 | Out-File $integrityFile -Force
+    
     # Store results
     $global:SecurityResults.Statistics.IntegrityIssues = $integrityIssues.Count
     if ($integrityIssues.Count -gt 0) {
@@ -3238,7 +2880,7 @@ if (($CheckIntegrity -or -not $QuickScan) -and -not $ManageTasks) {
             Time = Get-Date
         }
     }
-
+    
     Stop-PerformanceTimer "SharePoint Integrity Check"
 } else {
     # If not doing integrity check, set to 0
@@ -3266,15 +2908,15 @@ $WebshellSignatures = @{
     "info[0-9]+\.aspx" = "ToolShell Info Webshell"
     "System\.Web\.Configuration\.MachineKeySection" = "Machine Key Theft Code"
     "GetApplicationConfig.*ValidationKey" = "Validation Key Extraction"
-
+    
     # Process execution patterns
     "System\.Diagnostics\.Process\.Start" = "Process Execution"
     "Shell\.Execute|WScript\.Shell" = "Script Shell Execution"
-
+    
     # Obfuscation patterns
     "FromBase64String.*Invoke" = "Base64 Invoke Pattern"
     "[char]\[\]\s*\+\s*[char]\[\]" = "Char Array Obfuscation"
-
+    
     # Known webshell signatures
     "c99shell|r57shell|b374k|wso.*shell" = "Known Webshell Signature"
 }
@@ -3293,10 +2935,10 @@ $legitimateDLLsSkipped = 0
 foreach ($path in $WebPaths) {
     if (Test-Path $path) {
         Write-SecurityLog "  Scanning: $path" "INFO"
-
+        
         # Include DLL and EXE files
         $files = Get-ChildItem -Path $path -Recurse -Include "*.aspx","*.asmx","*.ashx","*.asp","*.ps1","*.bat","*.cmd","*.dll","*.exe","*.js" -ErrorAction SilentlyContinue
-
+        
         foreach ($file in $files) {
             # Skip SharePoint legitimate files
             $isLegitimate = $false
@@ -3306,21 +2948,21 @@ foreach ($path in $WebPaths) {
                     break
                 }
             }
-
+            
             if ($isLegitimate -and $file.Extension -notin @('.dll', '.exe')) {
                 continue
             }
-
+            
             # Special handling for DLL files with intelligent filtering
             if ($file.Extension -eq '.dll') {
                 $totalDLLsScanned++
-
+                
                 # Use intelligent DLL checking
                 $dllCheck = Test-SuspiciousDLL -File $file -BasePath $path
-
+                
                 if ($dllCheck.IsSuspicious) {
                     $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash
-
+                    
                     $CVEIndicators.DLLPayloads += @{
                         Path = $file.FullName
                         Type = $dllCheck.Reason
@@ -3331,7 +2973,7 @@ foreach ($path in $WebPaths) {
                         Size = $file.Length
                         Hash = $hash
                     }
-
+                    
                     # NEW v3.8: Track DLL deployment as attack
                     $CVEIndicators.AllAttacks += @{
                         Type = "Suspicious DLL Found"
@@ -3340,15 +2982,37 @@ foreach ($path in $WebPaths) {
                         TargetFile = $file.FullName
                         Method = "DLL Deployment"
                         Details = $dllCheck.Reason
-                        Hash = $hash
-                        ThreatActor = if ($dllCheck.Details) { "Known Malware" } else { "Unknown" }
+                        Hash = $dllCheck.Hash
+                        ThreatActor = "Unknown"
                         Severity = $dllCheck.Severity
                     }
-
-                    if ($dllCheck.Severity -eq "Critical") {
-                        Write-SecurityLog "CRITICAL: Malicious DLL detected: $($file.FullName) - $($dllCheck.Details)" "ALERT"
-                    } else {
-                        Write-SecurityLog "SUSPICIOUS: $($dllCheck.Reason): $($file.FullName)" "WARNING"
+                    
+                    # NEW v3.8: Add to pending if can auto-approve
+                    if ($dllCheck.CanAutoApprove -and -not $dllCheck.IsApproved) {
+                        # Get signature info
+                        $sigInfo = $null
+                        try {
+                            $sig = Get-AuthenticodeSignature $dll.FullName -ErrorAction Stop
+                            if ($sig.Status -eq "Valid") {
+                                $sigInfo = @{
+                                    SignatureStatus = "Valid"
+                                    SignerCertificate = $sig.SignerCertificate.Subject
+                                }
+                            }
+                        } catch {}
+                        
+                        $pendingDLLs.PendingDLLs += @{
+                            Name = $dll.Name
+                            Path = $dll.FullName
+                            Hash = $dllCheck.Hash
+                            Size = $dll.Length
+                            Created = $dll.CreationTime.ToString("yyyy-MM-dd HH:mm:ss")
+                            Modified = $dll.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+                            Reason = $dllCheck.Reason
+                            CanAutoApprove = $true
+                            SignatureStatus = $sigInfo.SignatureStatus
+                            SignerCertificate = $sigInfo.SignerCertificate
+                        }
                     }
                 } else {
                     $legitimateDLLsSkipped++
@@ -3356,16 +3020,16 @@ foreach ($path in $WebPaths) {
                         # Already approved, skip silently
                     }
                 }
-
+                
                 continue  # Skip further processing for DLLs
             }
-
+            
             # Check if file name matches suspicious patterns (for non-DLLs)
             if ($file.Name -in $SuspiciousFiles) {
                 $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash
-
+                
                 Write-SecurityLog "CRITICAL: Suspicious file found: $($file.FullName)" "ALERT"
-
+                
                 if ($file.Name -match "SharpHostInfo|xd\.exe") {
                     $CVEIndicators.PostExploitationTools += @{
                         Tool = $file.Name
@@ -3373,7 +3037,7 @@ foreach ($path in $WebPaths) {
                         Hash = $hash
                         Time = $file.CreationTime
                     }
-
+                    
                     # NEW v3.8: Track tool deployment
                     $CVEIndicators.AllAttacks += @{
                         Type = "Attack Tool Deployment"
@@ -3395,16 +3059,16 @@ foreach ($path in $WebPaths) {
                     }
                 }
             }
-
+            
             # Check file content for patterns (not for DLL/EXE)
             if ($file.Extension -notin @('.dll', '.exe') -and $file.Length -lt 1MB -and $file.Length -gt 50) {
                 try {
                     $content = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
-
+                    
                     foreach ($pattern in $WebshellSignatures.Keys) {
                         if ($content -match $pattern) {
                             $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash
-
+                            
                             $CVEIndicators.WebshellsFound += @{
                                 Path = $file.FullName
                                 Pattern = $WebshellSignatures[$pattern]
@@ -3413,7 +3077,7 @@ foreach ($path in $WebPaths) {
                                 Modified = $file.LastWriteTime
                                 Created = $file.CreationTime
                             }
-
+                            
                             # NEW v3.8: Track webshell as attack
                             $CVEIndicators.AllAttacks += @{
                                 Type = "Webshell Detected"
@@ -3426,7 +3090,7 @@ foreach ($path in $WebPaths) {
                                 ThreatActor = "Unknown"
                                 Severity = "Critical"
                             }
-
+                            
                             Write-SecurityLog "WEBSHELL DETECTED: $($file.FullName) - $($WebshellSignatures[$pattern])" "ALERT"
                             break
                         }
@@ -3472,7 +3136,7 @@ foreach ($path in $pathsToCheck) {
                     ThreatActor = "Unknown Ransomware Group"
                 }
                 Write-SecurityLog "CRITICAL: Potential ransomware encryption detected! Files with extension $ext found" "ALERT"
-
+                
                 # Track threat actor activity
                 $CVEIndicators.ThreatActorActivity += @{
                     Actor = "Ransomware Group"
@@ -3480,7 +3144,7 @@ foreach ($path in $pathsToCheck) {
                     Evidence = "Encrypted files with $ext extension"
                     Time = Get-Date
                 }
-
+                
                 # NEW v3.8: Track ransomware as critical attack
                 foreach ($encFile in $encryptedFiles | Select-Object -First 3) {
                     $CVEIndicators.AllAttacks += @{
@@ -3496,7 +3160,7 @@ foreach ($path in $pathsToCheck) {
                 }
             }
         }
-
+        
         # Check for ransom notes
         foreach ($note in $ransomwareNotes) {
             $ransomNotes = Get-ChildItem -Path $path -Filter $note -Recurse -ErrorAction SilentlyContinue
@@ -3507,7 +3171,7 @@ foreach ($path in $pathsToCheck) {
                     Locations = $ransomNotes.FullName
                 }
                 Write-SecurityLog "CRITICAL: Ransom note found: $note" "ALERT"
-
+                
                 # NEW v3.8: Track ransom note as attack
                 foreach ($noteFile in $ransomNotes | Select-Object -First 3) {
                     $CVEIndicators.AllAttacks += @{
@@ -3554,7 +3218,7 @@ $webConfigPaths += @(
 foreach ($configPath in $webConfigPaths) {
     if (Test-Path $configPath) {
         $config = Get-Item $configPath
-
+        
         # Check if config was modified after attack date (using real date)
         if ($config.LastWriteTime -gt (Get-Date "2023-07-01")) {
             # Read the file to check for machineKey section
@@ -3676,6 +3340,7 @@ $controlledFolderAccessStatus = "Not Applicable (ESET Active)"
 try {
     # Only if not using ESET
     if (-not $esetEnabled) {
+
         $cfaStatus = Get-MpPreference -ErrorAction SilentlyContinue | Select-Object -ExpandProperty EnableControlledFolderAccess
         if ($cfaStatus -eq 1) {
             $controlledFolderAccess = $true
@@ -3740,8 +3405,8 @@ $SuspiciousTasks = Get-ScheduledTask | Where-Object {
     # Check for suspicious patterns
     (
         $_.TaskName -match "^(temp|test|debug|update\d+)$" -or
-        ($_.Actions.Execute -match "powershell|cmd|PsExec|wmic" -and
-         $_.Author -notmatch "Microsoft|Adobe|Windows" -and
+        ($_.Actions.Execute -match "powershell|cmd|PsExec|wmic" -and 
+         $_.Author -notmatch "Microsoft|Adobe|Windows" -and 
          $_.TaskName -notlike "*SharePoint*" -and
          $_.TaskName -notlike "*Office*")
     )
@@ -3749,7 +3414,7 @@ $SuspiciousTasks = Get-ScheduledTask | Where-Object {
 
 if ($SuspiciousTasks) {
     Write-SecurityLog "Suspicious scheduled tasks detected!" "WARNING" $SuspiciousTasks
-
+    
     # NEW v3.8: Track scheduled tasks as persistence
     foreach ($task in $SuspiciousTasks | Select-Object -First 5) {
         $CVEIndicators.AllAttacks += @{
@@ -3778,7 +3443,7 @@ $knownAttackerConnections = $ActiveConnections | Where-Object {
 
 if ($knownAttackerConnections) {
     Write-SecurityLog "CRITICAL: Active connections to known attacker IPs!" "ALERT" $knownAttackerConnections
-
+    
     # Identify threat actors based on IP
     foreach ($conn in $knownAttackerConnections) {
         $actor = "Unknown"
@@ -3787,7 +3452,7 @@ if ($knownAttackerConnections) {
         } elseif ($conn.RemoteAddress -in @("134.199.202.205", "188.130.206.168")) {
             $actor = "Known APT Group"
         }
-
+        
         $CVEIndicators.ThreatActorActivity += @{
             Actor = $actor
             Type = "Active C2 Connection"
@@ -3795,7 +3460,7 @@ if ($knownAttackerConnections) {
             LocalPort = $conn.LocalPort
             Time = Get-Date
         }
-
+        
         # NEW v3.8: Track active C2 as critical attack
         $CVEIndicators.AllAttacks += @{
             Type = "Active C2 Connection"
@@ -3818,7 +3483,7 @@ $webProcessConnections = $ActiveConnections | Where-Object {
 
 if ($webProcessConnections) {
     Write-SecurityLog "WARNING: w3wp.exe making external connections" "WARNING" $webProcessConnections
-
+    
     # NEW v3.8: Track suspicious web connections
     foreach ($webConn in $webProcessConnections | Select-Object -First 5) {
         $CVEIndicators.AllAttacks += @{
@@ -3844,7 +3509,7 @@ foreach ($domain in $KnownC2Domains) {
             Entries = $c2Entry
             Time = Get-Date
         }
-
+        
         # NEW v3.8: Track C2 domain resolution
         $CVEIndicators.AllAttacks += @{
             Type = "C2 Domain Resolution"
@@ -3868,7 +3533,7 @@ if ($devTunnelsEntries) {
             Domain = $entry.Entry
             Time = Get-Date
         }
-
+        
         # NEW v3.8: Track DevTunnels usage
         $CVEIndicators.AllAttacks += @{
             Type = "DevTunnels C2 Domain"
@@ -3948,10 +3613,10 @@ $global:SecurityResults.Statistics = @{
     TotalEventsProcessed = $totalEventsProcessed  # Performance metric
     CachedEventsSkipped = $cachedEventsSkipped    # Performance metric
     AllAttacks = $CVEIndicators.AllAttacks.Count  # NEW v3.8: Total attack count
-    PendingDLLApprovals = if (Test-Path $PendingDLLFile) {
-        try {
+    PendingDLLApprovals = if (Test-Path $PendingDLLFile) { 
+        try { 
             $pending = Get-Content $PendingDLLFile -Raw | ConvertFrom-Json
-            $pending.PendingDLLs.Count
+            $pending.PendingDLLs.Count 
         } catch { 0 }
     } else { 0 }  # NEW v3.8
     ApprovedDLLs = $ApprovedDLLs.Count  # NEW v3.8
@@ -3964,30 +3629,30 @@ function Generate-HTMLReport {
     $alertCount = $global:SecurityResults.Alerts.Count
     $warningCount = $global:SecurityResults.Warnings.Count
     $stats = $global:SecurityResults.Statistics
-
-    $hasKnownAttackers = $stats.KnownAttackerConnections -gt 0 -or
+    
+    $hasKnownAttackers = $stats.KnownAttackerConnections -gt 0 -or 
                          ($CVEIndicators.ToolPaneExploits | Where-Object {$_.IsKnownAttacker}).Count -gt 0
-
+    
     $hasThreatActors = $stats.ThreatActorActivity -gt 0
-
+    
     # Determine colors and status
-    if ($hasKnownAttackers -or ($alertCount -gt 0)) {
+    if ($hasKnownAttackers -or ($alertCount -gt 0)) { 
         $statusColor = "#d32f2f"
-        $statusText = if ($hasThreatActors) {
-            "CRITICAL - THREAT ACTORS DETECTED"
-        } elseif ($hasKnownAttackers) {
-            "CRITICAL - KNOWN ATTACKERS DETECTED"
-        } else {
-            "CRITICAL ALERTS"
+        $statusText = if ($hasThreatActors) { 
+            "CRITICAL - THREAT ACTORS DETECTED" 
+        } elseif ($hasKnownAttackers) { 
+            "CRITICAL - KNOWN ATTACKERS DETECTED" 
+        } else { 
+            "CRITICAL ALERTS" 
         }
-    } elseif ($warningCount -gt 0) {
+    } elseif ($warningCount -gt 0) { 
         $statusColor = "#ff9800"
         $statusText = "WARNINGS DETECTED"
-    } else {
+    } else { 
         $statusColor = "#4caf50"
         $statusText = "SYSTEM SECURE"
     }
-
+    
     # HTML compatible with Outlook - all inline
     $html = @"
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -4010,7 +3675,7 @@ function Generate-HTMLReport {
     <table width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr>
         <td style="color:#ffffff;font-size:28px;font-weight:bold;">
-            <span style="font-size:32px;">&#x1F6E1;</span> SharePoint Security Report v3.9
+            <span style="font-size:32px;">&#x1F6E1;</span> SharePoint Security Report v4.0
         </td>
         <td align="right" style="color:#ffffff;font-size:14px;">
             <span style="font-size:16px;">&#x1F4C5;</span> $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
@@ -4024,7 +3689,7 @@ function Generate-HTMLReport {
 <tr>
 <td bgcolor="$statusColor" align="center" style="padding:20px;">
     <span style="color:#ffffff;font-size:22px;font-weight:bold;">
-        $(if ($hasThreatActors -or $hasKnownAttackers -or ($alertCount -gt 0)) { '<span style="font-size:28px;">&#x26A0;</span>' } elseif ($warningCount -gt 0) { '<span style="font-size:28px;">&#x26A0;</span>' } else { '<span style="font-size:28px;">&#x2714;</span>' })
+        $(if ($hasThreatActors -or $hasKnownAttackers -or ($alertCount -gt 0)) { '<span style="font-size:28px;">&#x26A0;</span>' } elseif ($warningCount -gt 0) { '<span style="font-size:28px;">&#x26A0;</span>' } else { '<span style="font-size:28px;">&#x2714;</span>' }) 
         $statusText
     </span>
 </td>
@@ -4066,10 +3731,10 @@ function Generate-HTMLReport {
     <table width="100%" cellpadding="10" cellspacing="0" border="1" bordercolor="#e3f2fd" bgcolor="#f1f8ff">
     <tr>
         <td>
-            <strong style="color:#1565c0;"><span style="font-size:14px;">&#x1F4CA;</span> Performance Metrics:</strong>
-            Scan Mode: <strong>$(if ($FullHistoricalScan) { 'Full Historical (30d)' } elseif ($QuickScan) { 'Quick (12h)' } else { "Standard ($MaxDaysToScan" + "d)" })</strong> |
-            Events Processed: <strong>$($stats.TotalEventsProcessed)</strong> |
-            Cache $(if ($DisableEventCache) { '(Disabled)' } else { 'Hits' }): <strong>$($stats.CachedEventsSkipped) ($('{0:N1}%' -f (($stats.CachedEventsSkipped / [Math]::Max($stats.TotalEventsProcessed, 1)) * 100)))</strong> |
+            <strong style="color:#1a237e;"><span style="font-size:14px;">&#x1F4CA;</span> Performance Metrics:</strong>
+            Scan Mode: <strong>$(if ($FullHistoricalScan) { 'Full Historical (30d)' } elseif ($QuickScan) { 'Quick (12h)' } else { "Standard ($MaxDaysToScan" + "d)" })</strong> | 
+            Events Processed: <strong>$($stats.TotalEventsProcessed)</strong> | 
+            Cache $(if ($DisableEventCache) { '(Disabled)' } else { 'Hits' }): <strong>$($stats.CachedEventsSkipped) ($('{0:N1}%' -f (($stats.CachedEventsSkipped / [Math]::Max($stats.TotalEventsProcessed, 1)) * 100)))</strong> | 
             Execution Time: <strong>$($stats.ExecutionTime)s</strong>
         </td>
     </tr>
@@ -4104,7 +3769,7 @@ $(if ($stats.MissingPatches.Count -gt 0) {
     <tr>
         <td>
             <h3 style="color:#d32f2f;margin:0;"><span style="font-size:18px;">&#x26A0;</span> CRITICAL: Missing Security Patches</h3>
-            <p style="margin:10px 0 0 0;">$(if ($stats.MissingPatches -join '' -match 'SharePoint 2019') {
+            <p style="margin:10px 0 0 0;">$(if ($stats.MissingPatches -join '' -match 'SharePoint 2019') { 
                 "SharePoint 2019 requires December 2023 Cumulative Update or later (minimum build: 16.0.10398.20000)"
             } else {
                 "Missing patches: $($stats.MissingPatches -join ', ')"
@@ -4400,13 +4065,35 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
     <tr>
         <td>
             <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F6AB;</span> CRITICAL: Microsoft Defender Tampering Detected</h3>
+            <p style="margin:10px 0 0 0;">The following Defender tampering attempts were detected:</p>
+            
+            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
+            <tr bgcolor="#f5f5f5">
+                <th align="left" style="padding:8px;">Type</th>
+                <th align="left" style="padding:8px;">Details</th>
+                <th align="left" style="padding:8px;">Time</th>
+            </tr>
 "@
         foreach ($tampering in $CVEIndicators.DefenderDisabled) {
+            $details = ""
+            if ($tampering.Path) {
+                $details = "Path: $($tampering.Path)"
+            } elseif ($tampering.Events) {
+                $details = "$($tampering.Events) events detected"
+            } else {
+                $details = "Detected at $($tampering.Time)"
+            }
+            
             $html += @"
-            <p style="margin:5px 0;"><strong>$($tampering.Type):</strong> $(if ($tampering.Path) { $tampering.Path } elseif ($tampering.Events) { "$($tampering.Events) events detected" } else { "Detected at $($tampering.Time)" })</p>
+            <tr bgcolor="#ffcdd2">
+                <td style="padding:8px;font-weight:bold;">$($tampering.Type)</td>
+                <td style="padding:8px;">$details</td>
+                <td style="padding:8px;">$($tampering.Time)</td>
+            </tr>
 "@
         }
         $html += @"
+            </table>
             <p style="color:#d32f2f;font-weight:bold;margin:10px 0 0 0;">
                 <span style="font-size:16px;">&#x26A0;</span> IMMEDIATE ACTION: Re-enable Microsoft Defender protections immediately!
             </p>
@@ -4466,398 +4153,18 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
     if ($CVEIndicators.ThreatActorActivity.Count -gt 0) {
         # Group activities by actor
         $actorGroups = $CVEIndicators.ThreatActorActivity | Group-Object -Property Actor
-
+        
         $html += @"
 <!-- Threat Actor Activity -->
 <tr>
 <td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
-    <tr>
-        <td>
-            <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F47F;</span> CRITICAL: Threat Actor Activity Detected</h3>
-"@
-
-        foreach ($actorGroup in $actorGroups) {
-            $actorName = $actorGroup.Name
-            $activities = $actorGroup.Group
-
-            $html += @"
-            <h4 style="color:#b71c1c;margin:10px 0 5px 0;">$actorName - $($activities.Count) activities detected</h4>
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">Activity Type</th>
-                <th align="left" style="padding:8px;">Details</th>
-                <th align="left" style="padding:8px;">Time</th>
-            </tr>
-"@
-            foreach ($activity in $activities | Select-Object -First 5) {
-                $details = ""
-                if ($activity.IP) { $details = "IP: $($activity.IP)" }
-                elseif ($activity.File) { $details = "File: $($activity.File)" }
-                elseif ($activity.Evidence) { $details = $activity.Evidence }
-
-                $html += @"
-            <tr bgcolor="#ffcdd2">
-                <td style="padding:8px;">$($activity.Activity -replace 'Type', '')</td>
-                <td style="padding:8px;">$details</td>
-                <td style="padding:8px;">$($activity.Time)</td>
-            </tr>
-"@
-            }
-            $html += "</table>"
-        }
-
-        $html += @"
-            <p style="color:#d32f2f;font-weight:bold;margin:10px 0 0 0;">
-                <span style="font-size:16px;">&#x1F6A8;</span> IMMEDIATE ACTION: Active APT groups detected! Initiate incident response immediately!
-            </p>
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-    }
-
-    # Add Post-Exploitation Tools section if detected
-    if ($CVEIndicators.PostExploitationTools.Count -gt 0) {
-        $html += @"
-<!-- Post-Exploitation Tools -->
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
-    <tr>
-        <td>
-            <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F528;</span> POST-EXPLOITATION TOOLS DETECTED</h3>
-
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">Tool</th>
-                <th align="left" style="padding:8px;">Details</th>
-                <th align="left" style="padding:8px;">Time</th>
-            </tr>
-"@
-        foreach ($tool in $CVEIndicators.PostExploitationTools | Select-Object -First 10) {
-            $details = ""
-            if ($tool.CommandLine) {
-                $details = $tool.CommandLine.Substring(0, [Math]::Min($tool.CommandLine.Length, 100)) + "..."
-            } elseif ($tool.Path) {
-                $details = $tool.Path
-            } elseif ($tool.Type) {
-                $details = $tool.Type
-            }
-
-            $html += @"
-            <tr bgcolor="#ffcdd2">
-                <td style="padding:8px;font-weight:bold;">$($tool.Tool)</td>
-                <td style="padding:8px;font-family:monospace;font-size:11px;">$details</td>
-                <td style="padding:8px;">$($tool.Time)</td>
-            </tr>
-"@
-        }
-        $html += @"
-            </table>
-            <p style="color:#d32f2f;font-weight:bold;margin:10px 0 0 0;">
-                <span style="font-size:16px;">&#x26A0;</span> Active post-exploitation detected! Assume credentials are compromised!
-            </p>
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-    }
-
-    # Add C2 Communications section if detected
-    if ($CVEIndicators.C2Communications.Count -gt 0) {
-        $html += @"
-<!-- C2 Communications -->
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
-    <tr>
-        <td>
-            <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F4E1;</span> COMMAND & CONTROL COMMUNICATIONS DETECTED</h3>
-
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">Type</th>
-                <th align="left" style="padding:8px;">Domain/IP</th>
-                <th align="left" style="padding:8px;">Details</th>
-            </tr>
-"@
-        foreach ($c2 in $CVEIndicators.C2Communications | Select-Object -First 10) {
-            $indicator = if ($c2.Domain) { $c2.Domain } else { $c2.IP }
-            $html += @"
-            <tr bgcolor="#ffcdd2">
-                <td style="padding:8px;">$($c2.Type)</td>
-                <td style="padding:8px;font-weight:bold;">$indicator</td>
-                <td style="padding:8px;">$(if ($c2.Time) { $c2.Time } else { 'Active' })</td>
-            </tr>
-"@
-        }
-        $html += @"
-            </table>
-            <p style="color:#d32f2f;font-weight:bold;margin:10px 0 0 0;">
-                <span style="font-size:16px;">&#x1F6A8;</span> Active C2 channels detected! Isolate affected systems immediately!
-            </p>
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-    }
-
-    # Add Critical Period Activity details if any
-    if ($CVEIndicators.CriticalPeriodActivity.Count -gt 0) {
-        $html += @"
-<!-- Critical Period Activity -->
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
-    <tr>
-        <td>
-            <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F6A8;</span> CRITICAL: Activity During September 2023 Attack Period</h3>
-            <p style="margin:0 0 10px 0;">Known exploitation period activity detected:</p>
-
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">Type</th>
-                <th align="left" style="padding:8px;">Time</th>
-                <th align="left" style="padding:8px;">Client IP</th>
-                <th align="left" style="padding:8px;">Status</th>
-            </tr>
-"@
-        foreach ($activity in $CVEIndicators.CriticalPeriodActivity | Select-Object -First 10) {
-            $html += @"
-            <tr bgcolor="#ffcdd2">
-                <td style="padding:8px;">$($activity.Type)</td>
-                <td style="padding:8px;">$($activity.Time)</td>
-                <td style="padding:8px;font-weight:bold;">$($activity.ClientIP)</td>
-                <td style="padding:8px;">$($activity.Status)</td>
-            </tr>
-"@
-        }
-        $html += @"
-            </table>
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-    }
-
-    # Add DLL Payload details if any
-    if ($CVEIndicators.DLLPayloads.Count -gt 0) {
-        # Group by severity
-        $criticalDLLs = $CVEIndicators.DLLPayloads | Where-Object { $_.Severity -eq "Critical" }
-        $suspiciousDLLs = $CVEIndicators.DLLPayloads | Where-Object { $_.Severity -ne "Critical" }
-
-        $html += @"
-<!-- DLL Payloads -->
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
-    <tr>
-        <td>
-            <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F4BE;</span> SUSPICIOUS DLL PAYLOADS DETECTED</h3>
-"@
-
-        if ($criticalDLLs.Count -gt 0) {
-            $html += @"
-            <h4 style="color:#b71c1c;margin:10px 0 5px 0;">Critical - Known Malicious DLLs ($($criticalDLLs.Count))</h4>
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">Type</th>
-                <th align="left" style="padding:8px;">File Path</th>
-                <th align="left" style="padding:8px;">Details</th>
-            </tr>
-"@
-            foreach ($dll in $criticalDLLs | Select-Object -First 5) {
-                $html += @"
-            <tr bgcolor="#ffcdd2">
-                <td style="padding:8px;font-weight:bold;">$($dll.Type)</td>
-                <td style="padding:8px;font-family:monospace;font-size:11px;">$($dll.Path)</td>
-                <td style="padding:8px;">$($dll.Details)</td>
-            </tr>
-"@
-            }
-            $html += "</table>"
-        }
-
-        if ($suspiciousDLLs.Count -gt 0) {
-            $html += @"
-            <h4 style="color:#ff6f00;margin:10px 0 5px 0;">Suspicious DLLs ($($suspiciousDLLs.Count))</h4>
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">Type</th>
-                <th align="left" style="padding:8px;">File Path</th>
-                <th align="left" style="padding:8px;">Created</th>
-            </tr>
-"@
-            foreach ($dll in $suspiciousDLLs | Select-Object -First 5) {
-                $html += @"
-            <tr bgcolor="#fff3e0">
-                <td style="padding:8px;">$($dll.Type)</td>
-                <td style="padding:8px;font-family:monospace;font-size:11px;">$($dll.Path)</td>
-                <td style="padding:8px;">$($dll.Created)</td>
-            </tr>
-"@
-            }
-            $html += "</table>"
-        }
-
-        $html += @"
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-    }
-
-    # Add Ransomware indicators if any
-    if ($CVEIndicators.RansomwareIndicators.Count -gt 0) {
-        $html += @"
-<!-- Ransomware Indicators -->
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
-    <tr>
-        <td>
-            <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F512;</span> RANSOMWARE INDICATORS DETECTED!</h3>
-"@
-        foreach ($indicator in $CVEIndicators.RansomwareIndicators) {
-            if ($indicator.Type -eq "EncryptedFiles") {
-                $html += "<p><strong>Encrypted files found with extension: $($indicator.Extension)</strong><br/>Count: $($indicator.Count)<br/>Threat Actor: $(if ($indicator.ThreatActor) { $indicator.ThreatActor } else { 'Unknown' })</p>"
-            } elseif ($indicator.Type -eq "RansomNote") {
-                $html += "<p><strong>Ransom note found: $($indicator.FileName)</strong><br/>Locations: $($indicator.Locations -join ', ')</p>"
-            }
-        }
-        $html += @"
-            <p style="color:#d32f2f;font-weight:bold;margin:10px 0 0 0;">
-                <span style="font-size:16px;">&#x1F6A8;</span> IMMEDIATE ACTION: Isolate affected systems and initiate ransomware response!
-            </p>
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-    }
-
-    # Add ToolPane exploit details if any
-    if ($CVEIndicators.ToolPaneExploits.Count -gt 0) {
-        $html += @"
-<!-- ToolPane Exploits -->
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
-    <tr>
-        <td>
-            <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F4A5;</span> CRITICAL: CVE-2023-29357 Exploitation Detected</h3>
-            <p style="margin:0 0 10px 0;"><span style="font-size:14px;">&#x26A0;</span> POST requests to /_layouts/15/ToolPane.aspx?DisplayMode=Edit detected:</p>
-
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">Time</th>
-                <th align="left" style="padding:8px;">Client IP</th>
-                <th align="left" style="padding:8px;">Status</th>
-                <th align="left" style="padding:8px;">Threat Actor</th>
-                <th align="left" style="padding:8px;">Known Attacker</th>
-            </tr>
-"@
-        foreach ($exploit in $CVEIndicators.ToolPaneExploits | Select-Object -First 10) {
-            $rowBg = if ($exploit.IsKnownAttacker) { "#ffcdd2" } else { "#ffffff" }
-            $ipDisplay = if ($exploit.IsKnownAttacker) {
-                "<span style='background-color:#b71c1c;color:#ffffff;padding:2px 6px;font-weight:bold;'>$($exploit.ClientIP)</span>"
-            } else {
-                $exploit.ClientIP
-            }
-
-            $html += @"
-            <tr bgcolor="$rowBg">
-                <td style="padding:8px;">$($exploit.Time)</td>
-                <td style="padding:8px;">$ipDisplay</td>
-                <td style="padding:8px;">$($exploit.Status)</td>
-                <td style="padding:8px;">$($exploit.ThreatActor)</td>
-                <td style="padding:8px;font-weight:bold;color:$(if ($exploit.IsKnownAttacker) {'#d32f2f'} else {'#000000'});">
-                    $(if ($exploit.IsKnownAttacker) { "YES" } else { "No" })
-                </td>
-            </tr>
-"@
-        }
-        $html += @"
-            </table>
-            <p style="color:#d32f2f;font-weight:bold;margin:10px 0 0 0;">
-                <span style="font-size:16px;">&#x1F6A8;</span> IMMEDIATE ACTION REQUIRED: Apply patches, rotate keys, enable AMSI!
-            </p>
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-    }
-
-    # Add detected webshells section
-    if ($CVEIndicators.WebshellsFound.Count -gt 0) {
-        $html += @"
-<!-- Webshells Detected -->
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
-    <tr>
-        <td>
-            <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F577;</span> WEBSHELLS DETECTED</h3>
-
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">File Path</th>
-                <th align="left" style="padding:8px;">Detection Pattern</th>
-                <th align="left" style="padding:8px;">Modified</th>
-                <th align="left" style="padding:8px;">Threat Actor</th>
-            </tr>
-"@
-        foreach ($ws in $CVEIndicators.WebshellsFound | Select-Object -First 10) {
-            $actor = if ($ws.ThreatActor) { $ws.ThreatActor } else { "Unknown" }
-            $html += @"
-            <tr bgcolor="#ffcdd2">
-                <td style="padding:8px;font-family:monospace;font-size:11px;">$($ws.Path)</td>
-                <td style="padding:8px;">$($ws.Pattern)</td>
-                <td style="padding:8px;">$($ws.Modified)</td>
-                <td style="padding:8px;">$actor</td>
-            </tr>
-"@
-        }
-        $html += @"
-            </table>
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-    }
-
-    # NEW v3.8: Add comprehensive attack summary if attacks detected
-    if ($CVEIndicators.AllAttacks.Count -gt 0) {
-        # Group attacks by type
-        $attacksByType = $CVEIndicators.AllAttacks | Group-Object -Property Type | Sort-Object Count -Descending
-
-        $html += @"
-<!-- Comprehensive Attack Summary -->
-<tr>
-<td style="padding:0 20px 20px 20px;">
     <h2 style="color:#1a237e;font-size:20px;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F4CA;</span> Detailed Attack Analysis</h2>
-
+    
     <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
     <tr>
         <td>
             <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F6A8;</span> Complete Attack Timeline - $($CVEIndicators.AllAttacks.Count) Total Attacks</h3>
-
+            
             <h4 style="color:#b71c1c;margin:10px 0 5px 0;">Attack Types Summary:</h4>
             <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
             <tr bgcolor="#f5f5f5">
@@ -4871,14 +4178,14 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
             $html += @"
             <tr bgcolor="#fff3e0">
                 <td style="padding:8px;font-weight:bold;">$($attackType.Name)</td>
-                <td style="padding:8px;text-align:center;">$($attackType.Count)</td>
+                <td style="padding:8px;text-align:center;font-weight:bold;">$($attackType.Count)</td>
                 <td style="padding:8px;text-align:center;">$percentage%</td>
             </tr>
 "@
         }
         $html += @"
             </table>
-
+            
             <h4 style="color:#b71c1c;margin:15px 0 5px 0;">Recent Attack Details (Last 20):</h4>
             <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
             <tr bgcolor="#f5f5f5">
@@ -4890,13 +4197,13 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
                 <th align="left" style="padding:8px;">Actor</th>
             </tr>
 "@
-
+        
         # Sort attacks by time (newest first) and show last 20
-        $sortedAttacks = $CVEIndicators.AllAttacks | Sort-Object {
-            if ($_.Time -is [DateTime]) { $_.Time }
+        $sortedAttacks = $CVEIndicators.AllAttacks | Sort-Object { 
+            if ($_.Time -is [DateTime]) { $_.Time } 
             else { [DateTime]::Parse($_.Time) }
         } -Descending | Select-Object -First 20
-
+        
         foreach ($attack in $sortedAttacks) {
             $rowColor = switch ($attack.Severity) {
                 "Critical" { "#ffcdd2" }
@@ -4904,57 +4211,79 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
                 "Medium" { "#fff3e0" }
                 default { "#ffffff" }
             }
-
-            # Ensure we have IP address
-            $attackerIP = if ($attack.AttackerIP) {
-                $attack.AttackerIP
-            } else {
-                "Unknown"
-            }
-
-            # Ensure we have attack type
-            $attackType = if ($attack.Type) {
-                $attack.Type
-            } else {
-                "Unknown Attack"
-            }
-
-            $targetDisplay = if ($attack.TargetFile -and $attack.TargetFile.Length -gt 40) {
+            
+            $targetDisplay = if ($attack.TargetFile.Length -gt 40) {
                 "..." + $attack.TargetFile.Substring($attack.TargetFile.Length - 37)
-            } elseif ($attack.TargetFile) {
+            } else {
                 $attack.TargetFile
-            } else {
-                "N/A"
             }
-
-            $method = if ($attack.Method) { $attack.Method } else { "Unknown" }
-            $actor = if ($attack.ThreatActor) { $attack.ThreatActor } else { "Unknown" }
-            $timeDisplay = if ($attack.Time) {
-                if ($attack.Time -is [DateTime]) {
-                    $attack.Time.ToString("yyyy-MM-dd HH:mm:ss")
-                } else {
-                    $attack.Time.ToString()
-                }
-            } else {
-                "Unknown"
-            }
-
+            
             $html += @"
             <tr bgcolor="$rowColor">
-                <td style="padding:8px;font-size:12px;">$timeDisplay</td>
-                <td style="padding:8px;font-size:12px;font-weight:bold;">$attackType</td>
-                <td style="padding:8px;font-family:monospace;font-size:12px;">$attackerIP</td>
+                <td style="padding:8px;font-size:12px;">$($attack.Time)</td>
+                <td style="padding:8px;font-size:12px;">$($attack.Type)</td>
+                <td style="padding:8px;font-family:monospace;font-size:12px;">$($attack.AttackerIP)</td>
                 <td style="padding:8px;font-family:monospace;font-size:11px;" title="$($attack.TargetFile)">$targetDisplay</td>
-                <td style="padding:8px;font-size:12px;">$method</td>
-                <td style="padding:8px;font-size:12px;">$actor</td>
+                <td style="padding:8px;font-size:12px;">$($attack.Method)</td>
+                <td style="padding:8px;font-size:12px;">$($attack.ThreatActor)</td>
             </tr>
 "@
         }
-
+        
         $html += @"
             </table>
-            <p style="color:#d32f2f;font-weight:bold;margin:10px 0 0 0;">
-                <span style="font-size:16px;">&#x1F6A8;</span> Comprehensive attack analysis shows active compromise. Initiate full incident response immediately!
+            
+            <h4 style="color:#b71c1c;margin:15px 0 5px 0;">Attacker IP Analysis:</h4>
+"@
+        
+        # Group attacks by attacker IP
+        $attackerIPs = $CVEIndicators.AllAttacks | 
+            Where-Object { $_.AttackerIP -and $_.AttackerIP -ne "Unknown" -and $_.AttackerIP -ne "Local" } |
+            Group-Object -Property AttackerIP | 
+            Sort-Object Count -Descending | 
+            Select-Object -First 10
+        
+        if ($attackerIPs.Count -gt 0) {
+            $html += @"
+            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
+            <tr bgcolor="#f5f5f5">
+                <th align="left" style="padding:8px;">Attacker IP</th>
+                <th align="left" style="padding:8px;">Events</th>
+                <th align="left" style="padding:8px;">Last Activity</th>
+                <th align="left" style="padding:8px;">Attack Types</th>
+                <th align="left" style="padding:8px;">Threat Actor</th>
+            </tr>
+"@
+            foreach ($ipGroup in $attackerIPs) {
+				$attacks = $ipGroup.Group
+				$uniqueTypes = ($attacks | ForEach-Object { $_.Type } | Select-Object -Unique) -join ", "
+                if ($uniqueTypes.Length -gt 50) {
+                    $uniqueTypes = $uniqueTypes.Substring(0, 47) + "..."
+                }
+                $actor = ($attacks | Where-Object { $_.ThreatActor -ne "Unknown" } | Select-Object -First 1).ThreatActor
+                if (-not $actor) { $actor = "Unknown" }
+                
+                $isKnownAttacker = $ipGroup.Name -in $KnownAttackerIPs
+                $rowColor = if ($isKnownAttacker) { "#ffcdd2" } else { "#fff3e0" }
+                
+                $html += @"
+                <tr bgcolor="$rowColor">
+                    <td style="padding:8px;font-family:monospace;font-weight:$(if ($isKnownAttacker) {'bold'} else {'normal'});">
+                        $(if ($isKnownAttacker) { "<span style='color:#d32f2f;'>$($ipGroup.Name) [KNOWN]</span>" } else { $ipGroup.Name })
+                    </td>
+                    <td style="padding:8px;text-align:center;">$($ipGroup.Count)</td>
+                    <td style="padding:8px;">$($attacks[0].Time)</td>
+                    <td style="padding:8px;font-size:12px;">$uniqueTypes</td>
+                    <td style="padding:8px;">$actor</td>
+                </tr>
+"@
+            }
+            $html += "</table>"
+        }
+        
+        $html += @"
+            <p style="color:#d32f2f;font-weight:bold;margin:15px 0 0 0;">
+                <span style="font-size:16px;">&#x1F6A8;</span> IMMEDIATE ACTION REQUIRED: Multiple attack vectors detected! Initiate full incident response!
             </p>
         </td>
     </tr>
@@ -4964,7 +4293,7 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
 "@
     }
 
-    # Add internal suspicious activity section
+    # Add Internal Suspicious Activity section if any
     if ($CVEIndicators.InternalSuspiciousActivity.Count -gt 0) {
         $html += @"
 <!-- Internal Suspicious Activity -->
@@ -4973,32 +4302,44 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
     <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#ff9800" bgcolor="#fff8e1">
     <tr>
         <td>
-            <h3 style="color:#ff9800;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F6A8;</span> Internal Suspicious Activity Detected</h3>
-            <p style="margin:0 0 10px 0;">Suspicious activity from internal IP addresses - potential lateral movement or compromised systems:</p>
-
+            <h3 style="color:#ff9800;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F3E0;</span> SUSPICIOUS: Internal Network Activity</h3>
+            <p style="margin:0 0 10px 0;"><span style="font-size:14px;">&#x26A0;</span> The following internal IPs showed suspicious patterns:</p>
+            
             <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
             <tr bgcolor="#f5f5f5">
                 <th align="left" style="padding:8px;">Internal IP</th>
-                <th align="left" style="padding:8px;">Activity Count</th>
+                <th align="left" style="padding:8px;">Events</th>
+                <th align="left" style="padding:8px;">Patterns Detected</th>
                 <th align="left" style="padding:8px;">Last Activity</th>
-                <th align="left" style="padding:8px;">Pattern</th>
             </tr>
 "@
-        foreach ($ip in $CVEIndicators.InternalSuspiciousActivity.Keys | Select-Object -First 10) {
+        foreach ($ip in $CVEIndicators.InternalSuspiciousActivity.Keys) {
             $activity = $CVEIndicators.InternalSuspiciousActivity[$ip]
+            $patterns = @()
+            
+            # Collect unique patterns
+            if ($activity.Pattern) {
+                $patterns += $activity.Pattern
+            }
+            if ($activity.Patterns) {
+                $patterns += $activity.Patterns | ForEach-Object { $_.Pattern } | Select-Object -Unique
+            }
+            
             $html += @"
-            <tr bgcolor="#fff3e0">
-                <td style="padding:8px;font-weight:bold;">$ip</td>
+            <tr bgcolor="#fffde7">
+                <td style="padding:8px;font-family:monospace;font-weight:bold;">$ip</td>
                 <td style="padding:8px;text-align:center;">$($activity.Count)</td>
+                <td style="padding:8px;font-size:12px;">$(($patterns | Select-Object -Unique) -join '<br/>')</td>
                 <td style="padding:8px;">$($activity.Time)</td>
-                <td style="padding:8px;">$($activity.Pattern)</td>
             </tr>
 "@
         }
+        
         $html += @"
             </table>
-            <p style="color:#ff6f00;font-weight:bold;margin:10px 0 0 0;">
-                <span style="font-size:16px;">&#x26A0;</span> Investigate these internal systems for compromise!
+            
+            <p style="color:#ff6f00;font-style:italic;margin:10px 0 0 0;">
+                <span style="font-size:14px;">&#x2139;</span> Note: Could indicate compromised internal systems or lateral movement.
             </p>
         </td>
     </tr>
@@ -5008,7 +4349,7 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
 "@
     }
 
-    # Add baseline DLL changes section if significant
+    # Add DLL Baseline Changes section if any
     if ($stats.BaselineNewDLLs -gt 0 -or $stats.BaselineModifiedDLLs -gt 0) {
         $html += @"
 <!-- DLL Baseline Changes -->
@@ -5017,65 +4358,27 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
     <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#ff9800" bgcolor="#fff8e1">
     <tr>
         <td>
-            <h3 style="color:#ff9800;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F4BE;</span> DLL Baseline Changes Detected</h3>
-            <p style="margin:0;">
-                <strong>New DLLs:</strong> $($stats.BaselineNewDLLs)<br/>
-                <strong>Modified DLLs:</strong> $($stats.BaselineModifiedDLLs)<br/>
-                <strong>Deleted DLLs:</strong> $($stats.BaselineDeletedDLLs)
+            <h3 style="color:#ff9800;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F4CA;</span> DLL Baseline Changes Detected</h3>
+            <table width="100%" cellpadding="8" cellspacing="0" border="0">
+            <tr>
+                <td width="33%" bgcolor="#ffffff" style="border:1px solid #e0e0e0;padding:15px;">
+                    <strong style="color:#ff9800;">New DLLs:</strong><br/>
+                    <span style="font-size:24px;color:#ff9800;">$($stats.BaselineNewDLLs)</span>
+                </td>
+                <td width="33%" bgcolor="#ffffff" style="border:1px solid #e0e0e0;padding:15px;">
+                    <strong style="color:#ff6f00;">Modified DLLs:</strong><br/>
+                    <span style="font-size:24px;color:#ff6f00;">$($stats.BaselineModifiedDLLs)</span>
+                </td>
+                <td width="33%" bgcolor="#ffffff" style="border:1px solid #e0e0e0;padding:15px;">
+                    <strong style="color:#558b2f;">Deleted DLLs:</strong><br/>
+                    <span style="font-size:24px;color:#558b2f;">$($stats.BaselineDeletedDLLs)</span>
+                </td>
+            </tr>
+            </table>
+            <p style="color:#ff6f00;font-weight:bold;margin:10px 0 0 0;">
+                <span style="font-size:16px;">&#x26A0;</span> Review changes carefully - unexpected DLL modifications could indicate compromise!
+                $(if ($stats.PendingDLLApprovals -gt 0) { "<br/><span style='font-size:16px;'>&#x1F4CB;</span> $($stats.PendingDLLApprovals) DLLs pending approval - run with -ReviewPendingDLLs" })
             </p>
-"@
-
-        # Show modified DLL details if any
-        if ($global:SecurityResults.ModifiedDLLDetails.Count -gt 0) {
-            $html += @"
-            <h4 style="color:#ff6f00;margin:10px 0 5px 0;">Modified DLLs:</h4>
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">DLL Name</th>
-                <th align="left" style="padding:8px;">Path</th>
-                <th align="left" style="padding:8px;">Previous Modified</th>
-                <th align="left" style="padding:8px;">Current Modified</th>
-            </tr>
-"@
-            foreach ($dll in $global:SecurityResults.ModifiedDLLDetails | Select-Object -First 5) {
-                $html += @"
-            <tr bgcolor="#fff3e0">
-                <td style="padding:8px;font-weight:bold;">$($dll.Name)</td>
-                <td style="padding:8px;font-family:monospace;font-size:11px;">$($dll.Path)</td>
-                <td style="padding:8px;">$($dll.OldModified)</td>
-                <td style="padding:8px;">$($dll.NewModified)</td>
-            </tr>
-"@
-            }
-            $html += "</table>"
-        }
-
-        # Show new DLL details if any
-        if ($global:SecurityResults.NewDLLDetails.Count -gt 0 -and $stats.BaselineNewDLLs -le 20) {
-            $html += @"
-            <h4 style="color:#ff6f00;margin:10px 0 5px 0;">New DLLs:</h4>
-            <table width="100%" cellpadding="5" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-            <tr bgcolor="#f5f5f5">
-                <th align="left" style="padding:8px;">DLL Name</th>
-                <th align="left" style="padding:8px;">Path</th>
-                <th align="left" style="padding:8px;">Created</th>
-                <th align="left" style="padding:8px;">Size</th>
-            </tr>
-"@
-            foreach ($dll in $global:SecurityResults.NewDLLDetails | Select-Object -First 10) {
-                $html += @"
-            <tr bgcolor="#fff3e0">
-                <td style="padding:8px;font-weight:bold;">$($dll.Name)</td>
-                <td style="padding:8px;font-family:monospace;font-size:11px;">$($dll.Path)</td>
-                <td style="padding:8px;">$($dll.Created)</td>
-                <td style="padding:8px;">$($dll.Size)</td>
-            </tr>
-"@
-            }
-            $html += "</table>"
-        }
-
-        $html += @"
         </td>
     </tr>
     </table>
@@ -5084,435 +4387,437 @@ $(if ($stats.PendingDLLApprovals -gt 0) {
 "@
     }
 
-    # Security Configuration Status
-    $html += @"
-<!-- Security Configuration Status -->
-<tr>
-<td style="padding:20px 20px 10px 20px;">
-    <h2 style="color:#1a237e;font-size:22px;margin:0;padding:0 0 10px 0;border-bottom:2px solid #3949ab;">
-        <span style="font-size:20px;">&#x1F6E1;</span> Security Configuration Status
-    </h2>
-</td>
-</tr>
-
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="10" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-    <tr bgcolor="#f5f5f5">
-        <th align="left" style="padding:10px;width:50%;">Security Feature</th>
-        <th align="left" style="padding:10px;">Status</th>
-    </tr>
-    <tr>
-        <td style="padding:10px;"><span style="font-size:14px;">&#x1F6E1;</span> <strong>Endpoint Protection</strong></td>
-        <td style="padding:10px;color:$(if ($stats.EndpointProtection -ne 'None') {'#4caf50'} else {'#d32f2f'});">
-            $(if ($stats.EndpointProtection -ne 'None') { '<span style="font-size:14px;">&#x2714;</span>' } else { '<span style="font-size:14px;">&#x2718;</span>' })
-            $($stats.EndpointProtection)
-        </td>
-    </tr>
-    <tr bgcolor="#fafafa">
-        <td style="padding:10px;"><span style="font-size:14px;">&#x1F512;</span> <strong>LSA Protection</strong></td>
-        <td style="padding:10px;color:$(if ($stats.LSAProtection) {'#4caf50'} else {'#d32f2f'});">
-            $(if ($stats.LSAProtection) { '<span style="font-size:14px;">&#x2714;</span> Enabled' } else { '<span style="font-size:14px;">&#x2718;</span> Disabled' })
-        </td>
-    </tr>
-    <tr>
-        <td style="padding:10px;"><span style="font-size:14px;">&#x1F6E1;</span> <strong>Credential Guard</strong></td>
-        <td style="padding:10px;color:$(if ($stats.CredentialGuardStatus -eq 'Enabled' -or $stats.CredentialGuardStatus -eq 'Not Applicable (ESET Active)') {'#4caf50'} else {'#d32f2f'});">
-            $(if ($stats.CredentialGuardStatus -eq 'Enabled') { '<span style="font-size:14px;">&#x2714;</span>' }
-              elseif ($stats.CredentialGuardStatus -eq 'Not Applicable (ESET Active)') { '<span style="font-size:14px;">&#x2713;</span>' }
-              else { '<span style="font-size:14px;">&#x2718;</span>' })
-            $($stats.CredentialGuardStatus)
-        </td>
-    </tr>
-    <tr bgcolor="#fafafa">
-        <td style="padding:10px;"><span style="font-size:14px;">&#x1F4C1;</span> <strong>Controlled Folder Access</strong></td>
-        <td style="padding:10px;color:$(if ($stats.ControlledFolderAccessStatus -eq 'Enabled' -or $stats.ControlledFolderAccessStatus -eq 'Not Applicable (ESET Active)') {'#4caf50'} else {'#d32f2f'});">
-            $(if ($stats.ControlledFolderAccessStatus -eq 'Enabled') { '<span style="font-size:14px;">&#x2714;</span>' }
-              elseif ($stats.ControlledFolderAccessStatus -eq 'Not Applicable (ESET Active)') { '<span style="font-size:14px;">&#x2713;</span>' }
-              else { '<span style="font-size:14px;">&#x2718;</span>' })
-            $($stats.ControlledFolderAccessStatus)
-        </td>
-    </tr>
-    <tr>
-        <td style="padding:10px;"><span style="font-size:14px;">&#x1F6E1;</span> <strong>Attack Surface Reduction Rules</strong></td>
-        <td style="padding:10px;color:$(if ($stats.ASRRulesStatus -eq 'Not Applicable (ESET Active)' -or $stats.ASRRulesEnabled -gt 0) {'#4caf50'} else {'#ff9800'});">
-            $(if ($stats.ASRRulesStatus -eq 'Not Applicable (ESET Active)') { '<span style="font-size:14px;">&#x2713;</span>' }
-              elseif ($stats.ASRRulesEnabled -gt 0) { '<span style="font-size:14px;">&#x2714;</span>' }
-              else { '<span style="font-size:14px;">&#x26A0;</span>' })
-            $($stats.ASRRulesStatus)
-        </td>
-    </tr>
-    <tr bgcolor="#fafafa">
-        <td style="padding:10px;"><span style="font-size:14px;">&#x1F527;</span> <strong>AMSI (Antimalware Scan Interface)</strong></td>
-        <td style="padding:10px;color:$(if ($stats.AMSIEnabled) {'#4caf50'} else {'#d32f2f'});">
-            $(if ($stats.AMSIEnabled) { '<span style="font-size:14px;">&#x2714;</span> Enabled' } else { '<span style="font-size:14px;">&#x2718;</span> Disabled' })
-        </td>
-    </tr>
-    <tr>
-        <td style="padding:10px;"><span style="font-size:14px;">&#x1F511;</span> <strong>Machine Keys Rotated</strong></td>
-        <td style="padding:10px;color:$(if ($stats.MachineKeyRotated) {'#4caf50'} else {'#d32f2f'});">
-            $(if ($stats.MachineKeyRotated) {
-                "<span style='font-size:14px;'>&#x2714;</span> Yes - $($stats.MachineKeyRotationDate)"
-            } else {
-                '<span style="font-size:14px;">&#x2718;</span> No - Keys compromised since July 2023!'
-            })
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-
-    # Security patches status
-    if ($stats.MissingPatches.Count -gt 0 -or $stats.InstalledPatches.Count -gt 0) {
-        $html += @"
-<!-- Security Patches Status -->
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <h3 style="color:#1a237e;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F6E1;</span> Security Patches Status</h3>
-
-    <table width="100%" cellpadding="10" cellspacing="0" border="1" bordercolor="#e0e0e0" bgcolor="#ffffff">
-"@
-
-        if ($stats.InstalledPatches.Count -gt 0) {
-            $html += @"
-    <tr>
-        <td style="padding:10px;background-color:#e8f5e9;">
-            <strong style="color:#4caf50;"><span style="font-size:14px;">&#x2714;</span> Installed Patches:</strong><br/>
-            $($stats.InstalledPatches -join ', ')
-        </td>
-    </tr>
-"@
-        }
-
-        if ($stats.MissingPatches.Count -gt 0) {
-            $html += @"
-    <tr>
-        <td style="padding:10px;background-color:#ffebee;">
-            <strong style="color:#d32f2f;"><span style="font-size:14px;">&#x2718;</span> Missing Critical Patches:</strong><br/>
-            $($stats.MissingPatches -join ', ')<br/>
-            <span style="color:#d32f2f;font-weight:bold;">INSTALL IMMEDIATELY!</span>
-        </td>
-    </tr>
-"@
-        }
-
-        $html += @"
-    </table>
-</td>
-</tr>
-"@
-    }
-
-    # Recommendations section - ENHANCED
-    $recommendations = @()
-    $criticalRecommendations = @()
-
-    # Critical recommendations based on findings
-    if ($stats.MissingPatches.Count -gt 0) {
-        if ($stats.MissingPatches -join '' -match 'SharePoint 2019') {
-            $criticalRecommendations += "<span style='font-size:14px;'>&#x1F6A8;</span> Install SharePoint 2019 December 2023 CU or later immediately (minimum build: 16.0.10398.20000)"
-        } else {
-            $criticalRecommendations += "<span style='font-size:14px;'>&#x1F6A8;</span> Install missing security patches immediately: $($stats.MissingPatches -join ', ')"
-        }
-    }
-
-    if ($stats.ToolPaneExploits -gt 0 -or $stats.ExploitAttempts -gt 0) {
-        $criticalRecommendations += "<span style='font-size:14px;'>&#x1F6A8;</span> CRITICAL: Active exploitation detected - initiate incident response immediately"
-    }
-
-    if ($stats.ThreatActorActivity -gt 0) {
-        $criticalRecommendations += "<span style='font-size:14px;'>&#x1F6A8;</span> CRITICAL: Known threat actors detected - assume breach and engage security team"
-    }
-
-    if ($stats.WebshellsFound -gt 0) {
-        $criticalRecommendations += "<span style='font-size:14px;'>&#x1F6A8;</span> Remove all detected webshells and perform forensic analysis"
-    }
-
-    if ($stats.PostExploitationTools -gt 0) {
-        $criticalRecommendations += "<span style='font-size:14px;'>&#x1F6A8;</span> Post-exploitation tools detected - rotate ALL credentials immediately"
-    }
-
-    if ($stats.C2Communications -gt 0) {
-        $criticalRecommendations += "<span style='font-size:14px;'>&#x1F6A8;</span> Block all C2 domains/IPs at firewall immediately"
-    }
-
-    if (-not $stats.MachineKeyRotated) {
-        $criticalRecommendations += "<span style='font-size:14px;'>&#x1F511;</span> Rotate ASP.NET machine keys immediately (not rotated since July 2023)"
-    }
-
-    if ($stats.DefenderDisabled -gt 0 -and -not $stats.ESETEnabled) {
-        $criticalRecommendations += "<span style='font-size:14px;'>&#x1F6AB;</span> Re-enable Microsoft Defender protections immediately"
-    }
-
-    if ($stats.LSASSAccess -gt 0) {
-        $criticalRecommendations += "<span style='font-size:14px;'>&#x1F511;</span> LSASS access detected - assume credentials compromised, rotate all passwords"
-    }
-
-    # Standard recommendations
-    if (-not $stats.AMSIEnabled) {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Enable AMSI for SharePoint (strongly recommended by Microsoft)"
-    }
-
-    if (-not $stats.LSAProtection) {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Enable LSA Protection (RunAsPPL)"
-    }
-
-    if ($stats.CredentialGuardStatus -eq 'Not Enabled' -and -not $stats.ESETEnabled) {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Enable Credential Guard on this server"
-    }
-
-    if ($stats.ControlledFolderAccessStatus -eq 'Not Enabled' -and -not $stats.ESETEnabled) {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Enable Controlled Folder Access for ransomware protection"
-    }
-
-    if ($stats.ASRRulesEnabled -eq 0 -and -not $stats.ESETEnabled) {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Configure Attack Surface Reduction rules"
-    }
-
-    if ($stats.EndpointProtection -eq 'None') {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Deploy endpoint protection (Microsoft Defender for Endpoint or ESET)"
-    }
-
-    if ($stats.BaselineNewDLLs -gt 10) {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Review new DLLs detected since baseline - possible persistence mechanisms"
-    }
-
+    # Add SharePoint Integrity Issues section if any
     if ($stats.IntegrityIssues -gt 0) {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Critical SharePoint files have been tampered - reinstall affected components"
-    }
-
-    if ($stats.GPOModifications -gt 0) {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Review all Group Policy changes - ransomware groups use GPO for deployment"
-    }
-
-    if ($stats.PendingDLLApprovals -gt 0) {
-        $recommendations += "<span style='font-size:14px;'>&#x2022;</span> Review pending DLLs: Run script with -ReviewPendingDLLs parameter"
-    }
-
-    # Add recommendations section
-    if ($criticalRecommendations.Count -gt 0 -or $recommendations.Count -gt 0) {
         $html += @"
-<!-- Recommendations -->
-<tr>
-<td style="padding:20px 20px 10px 20px;">
-    <h2 style="color:#1a237e;font-size:22px;margin:0;padding:0 0 10px 0;border-bottom:2px solid #3949ab;">
-        <span style="font-size:20px;">&#x1F4CB;</span> Security Recommendations
-    </h2>
-</td>
-</tr>
-"@
-
-        if ($criticalRecommendations.Count -gt 0) {
-            $html += @"
+<!-- SharePoint Integrity Issues -->
 <tr>
 <td style="padding:0 20px 20px 20px;">
     <table width="100%" cellpadding="15" cellspacing="0" border="2" bordercolor="#d32f2f" bgcolor="#ffebee">
     <tr>
         <td>
-            <h3 style="color:#d32f2f;margin:0 0 10px 0;">CRITICAL ACTIONS REQUIRED</h3>
-"@
-            foreach ($rec in $criticalRecommendations) {
-                $html += "<p style='margin:5px 0;'>$rec</p>"
-            }
-            $html += @"
+            <h3 style="color:#d32f2f;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F50D;</span> CRITICAL: SharePoint File Integrity Issues</h3>
+            <p style="margin:0;">$($stats.IntegrityIssues) critical SharePoint files have integrity issues!</p>
+            <p style="color:#d32f2f;font-weight:bold;margin:10px 0 0 0;">
+                <span style="font-size:16px;">&#x26A0;</span> Core SharePoint files may have been tampered with! Verify installation immediately!
+            </p>
         </td>
     </tr>
     </table>
 </td>
 </tr>
 "@
-        }
-
-        if ($recommendations.Count -gt 0) {
-            $html += @"
-<tr>
-<td style="padding:0 20px 20px 20px;">
-    <table width="100%" cellpadding="15" cellspacing="0" border="1" bordercolor="#3949ab" bgcolor="#e8eaf6">
-    <tr>
-        <td>
-            <h3 style="color:#3949ab;margin:0 0 10px 0;">Additional Security Improvements</h3>
-"@
-            foreach ($rec in $recommendations) {
-                $html += "<p style='margin:5px 0;'>$rec</p>"
-            }
-            $html += @"
-        </td>
-    </tr>
-    </table>
-</td>
-</tr>
-"@
-        }
     }
 
-    # Footer
+    # Microsoft Compliance Status - UPDATED with new security features
     $html += @"
+<!-- Microsoft Compliance -->
+<tr>
+<td style="padding:0 20px 20px 20px;">
+    <h2 style="color:#1a237e;font-size:20px;margin:0 0 10px 0;"><span style="font-size:18px;">&#x1F4CB;</span> Security Recommendations</h2>
+    
+    <table width="100%" cellpadding="8" cellspacing="0" border="1" bordercolor="#e3f2fd">
+    <tr bgcolor="#e3f2fd">
+        <th align="left" style="padding:10px;color:#1a237e;">Action</th>
+        <th align="left" style="padding:10px;color:#1a237e;">Status</th>
+        <th align="left" style="padding:10px;color:#1a237e;">Notes</th>
+    </tr>
+    <tr bgcolor="#ffffff">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F4E6;</span> Apply Security Updates</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.MissingPatches.Count -eq 0) {'#4caf50'} else {'#d32f2f'});">
+            $(if ($stats.MissingPatches.Count -eq 0) { '<span style="font-size:14px;">&#x2714;</span> Installed' } else { '<span style="font-size:14px;">&#x2718;</span> Missing Updates' })
+        </td>
+        <td style="padding:10px;">
+            $(if ($stats.MissingPatches.Count -gt 0) { 
+                if ($stats.MissingPatches -join '' -match 'SharePoint 2019') {
+                    "Update to build 16.0.10398.20000+"
+                } else {
+                    "Missing: $($stats.MissingPatches -join ', ')"
+                }
+            } elseif ($stats.InstalledPatches -join '' -match 'Build') {
+                $stats.InstalledPatches -join ', '
+            } else { 
+                "All required patches installed" 
+            })
+        </td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F6E1;</span> Configure AMSI Full Mode</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.AMSIEnabled) {'#4caf50'} else {'#d32f2f'});">
+            $(if ($stats.AMSIEnabled) { '<span style="font-size:14px;">&#x2714;</span> Enabled' } else { '<span style="font-size:14px;">&#x2718;</span> Not Enabled' })
+        </td>
+        <td style="padding:10px;">Deploy Microsoft Defender AV on SharePoint</td>
+    </tr>
+    <tr bgcolor="#ffffff">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F512;</span> Microsoft Defender Protection</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.ESETEnabled -or $stats.DefenderForEndpoint) {'#4caf50'} else {'#ff9800'});">
+            $(if ($stats.ESETEnabled) { '<span style="font-size:14px;">&#x2714;</span> ESET Active' } elseif ($stats.DefenderForEndpoint) { '<span style="font-size:14px;">&#x2714;</span> MDE Active' } else { '<span style="font-size:14px;">&#x26A0;</span> Not Running' })
+        </td>
+        <td style="padding:10px;">$($stats.EndpointProtection)</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F6E1;</span> LSA Protection (RunAsPPL)</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.LSAProtection) {'#4caf50'} else {'#ff9800'});">
+            $(if ($stats.LSAProtection) { '<span style="font-size:14px;">&#x2714;</span> Enabled' } else { '<span style="font-size:14px;">&#x2718;</span> Not Enabled' })
+        </td>
+        <td style="padding:10px;">Protects against credential theft</td>
+    </tr>
+    <tr bgcolor="#ffffff">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F511;</span> Credential Guard</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.ESETEnabled) {'#4caf50'} elseif ($stats.CredentialGuard) {'#4caf50'} else {'#ff9800'});">
+            $(if ($stats.ESETEnabled) { '<span style="font-size:14px;">&#x2714;</span> ESET Protection' } elseif ($stats.CredentialGuard) { '<span style="font-size:14px;">&#x2714;</span> Enabled' } else { '<span style="font-size:14px;">&#x2718;</span> Not Enabled' })
+        </td>
+        <td style="padding:10px;">$(if ($stats.ESETEnabled) { 'Protected by ESET' } else { 'Hardware-based credential protection' })</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F4C1;</span> Controlled Folder Access</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.ESETEnabled) {'#4caf50'} elseif ($stats.ControlledFolderAccess) {'#4caf50'} else {'#ff9800'});">
+            $(if ($stats.ESETEnabled) { '<span style="font-size:14px;">&#x2714;</span> ESET Protection' } elseif ($stats.ControlledFolderAccess) { '<span style="font-size:14px;">&#x2714;</span> Enabled' } else { '<span style="font-size:14px;">&#x2718;</span> Not Enabled' })
+        </td>
+        <td style="padding:10px;">$(if ($stats.ESETEnabled) { 'Ransomware protection by ESET' } else { 'Ransomware protection' })</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F6E1;</span> Attack Surface Reduction Rules</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.ESETEnabled) {'#4caf50'} elseif ($stats.ASRRulesEnabled -gt 0) {'#4caf50'} else {'#ff9800'});">
+            $(if ($stats.ESETEnabled) { '<span style="font-size:14px;">&#x2714;</span> ESET Protection' } elseif ($stats.ASRRulesEnabled -gt 0) { "<span style='font-size:14px;'>&#x2714;</span> $($stats.ASRRulesEnabled) Rules" } else { '<span style="font-size:14px;">&#x2718;</span> None' })
+        </td>
+        <td style="padding:10px;">$(if ($stats.ESETEnabled) { 'Exploit protection by ESET' } else { 'Block credential stealing, ransomware' })</td>
+    </tr>
+    <tr bgcolor="#ffffff">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F50D;</span> Monitor Attack Patterns</td>
+        <td style="padding:10px;font-weight:bold;color:#4caf50;"><span style="font-size:14px;">&#x2714;</span> Monitoring Active</td>
+        <td style="padding:10px;">ToolPane: $($stats.ToolPaneExploits), SignOut: $($stats.SignOutExploits)</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F47F;</span> Threat Actor Detection</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.ThreatActorActivity -gt 0) {'#d32f2f'} else {'#4caf50'});">
+            $(if ($stats.ThreatActorActivity -gt 0) { '<span style="font-size:14px;">&#x26A0;</span> ACTORS DETECTED' } else { '<span style="font-size:14px;">&#x2714;</span> None Detected' })
+        </td>
+        <td style="padding:10px;">$($stats.ThreatActorActivity) threat actor activities</td>
+    </tr>
+    <tr bgcolor="#ffffff">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F528;</span> Post-Exploitation Tools</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.PostExploitationTools -gt 0) {'#d32f2f'} else {'#4caf50'});">
+            $(if ($stats.PostExploitationTools -gt 0) { '<span style="font-size:14px;">&#x26A0;</span> TOOLS DETECTED' } else { '<span style="font-size:14px;">&#x2714;</span> None Found' })
+        </td>
+        <td style="padding:10px;">Mimikatz, Impacket, PsExec monitoring</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F511;</span> LSASS Memory Access</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.LSASSAccess -gt 0) {'#d32f2f'} else {'#4caf50'});">
+            $(if ($stats.LSASSAccess -gt 0) { '<span style="font-size:14px;">&#x26A0;</span> DETECTED' } else { '<span style="font-size:14px;">&#x2714;</span> Not Detected' })
+        </td>
+        <td style="padding:10px;">$($stats.LSASSAccess) suspicious access events</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F4DC;</span> Group Policy Monitoring</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.GPOModifications -gt 0) {'#ff9800'} else {'#4caf50'});">
+            $(if ($stats.GPOModifications -gt 0) { '<span style="font-size:14px;">&#x26A0;</span> Changes Detected' } else { '<span style="font-size:14px;">&#x2714;</span> No Changes' })
+        </td>
+        <td style="padding:10px;">$($stats.GPOModifications) suspicious GPO changes</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F511;</span> Rotate ASP.NET Machine Keys</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.MachineKeyRotated) {'#4caf50'} else {'#d32f2f'});">
+            $(if ($stats.MachineKeyRotated) { '<span style="font-size:14px;">&#x2714;</span> Rotated' } else { '<span style="font-size:14px;">&#x26A0;</span> No rotation detected' })
+        </td>
+        <td style="padding:10px;">
+            $(if ($stats.MachineKeyRotated) { "Keys rotated on: $($stats.MachineKeyRotationDate)" } else { "Rotate before and after patching" })
+        </td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F4C5;</span> Critical Period Activity Check</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.CriticalPeriodActivity -gt 0) {'#d32f2f'} else {'#4caf50'});">
+            $(if ($stats.CriticalPeriodActivity -gt 0) { '<span style="font-size:14px;">&#x26A0;</span> Activity Found' } else { '<span style="font-size:14px;">&#x2714;</span> No Activity' })
+        </td>
+        <td style="padding:10px;">September 2023 exploitation period</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F4E1;</span> Monitor C2 Communications</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.C2Communications -gt 0) {'#d32f2f'} else {'#4caf50'});">
+            $(if ($stats.C2Communications -gt 0) { '<span style="font-size:14px;">&#x26A0;</span> C2 DETECTED' } else { '<span style="font-size:14px;">&#x2714;</span> None Found' })
+        </td>
+        <td style="padding:10px;">$($stats.C2Communications) C2 indicators found</td>
+    </tr>
+    <tr bgcolor="#ffffff">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x26D4;</span> Disconnect EOL SharePoint</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.IsEOL -eq $true) {'#d32f2f'} elseif ($stats.IsEOL -eq $false) {'#4caf50'} else {'#ff9800'});">
+            $(if ($stats.IsEOL -eq $true) { '<span style="font-size:14px;">&#x26A0;</span> EOL Version!' } elseif ($stats.IsEOL -eq $false) { '<span style="font-size:14px;">&#x2714;</span> Supported' } else { '<span style="font-size:14px;">?</span> Unknown' })
+        </td>
+        <td style="padding:10px;">SharePoint 2013 and earlier must be disconnected</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F4CA;</span> DLL Baseline Monitoring</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.BaselineNewDLLs -gt 0 -or $stats.BaselineModifiedDLLs -gt 0) {'#ff9800'} else {'#4caf50'});">
+            $(if ($stats.BaselineAutoCreated) { '<span style="font-size:14px;">&#x1F195;</span> Baseline Created' } elseif ($stats.BaselineNewDLLs -gt 0 -or $stats.BaselineModifiedDLLs -gt 0) { '<span style="font-size:14px;">&#x26A0;</span> Changes Detected' } else { '<span style="font-size:14px;">&#x2714;</span> No Changes' })
+        </td>
+        <td style="padding:10px;">$(if ($stats.BaselineAutoCreated) { 'Initial baseline established' } else { "New: $($stats.BaselineNewDLLs), Modified: $($stats.BaselineModifiedDLLs)" })</td>
+    </tr>
+    <tr bgcolor="#ffffff">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F50D;</span> SharePoint File Integrity</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.IntegrityIssues -gt 0) {'#d32f2f'} else {'#4caf50'});">
+            $(if ($stats.IntegrityIssues -gt 0) { '<span style="font-size:14px;">&#x26A0;</span> TAMPERING DETECTED' } else { '<span style="font-size:14px;">&#x2714;</span> Files Intact' })
+        </td>
+        <td style="padding:10px;">$($stats.IntegrityIssues) files with integrity issues</td>
+    </tr>
+    <tr bgcolor="#f9f9f9">
+        <td style="padding:10px;"><span style="font-size:14px;">&#x1F4CB;</span> DLL Approval System</td>
+        <td style="padding:10px;font-weight:bold;color:$(if ($stats.PendingDLLApprovals -gt 0) {'#ff9800'} else {'#4caf50'});">
+            $(if ($stats.PendingDLLApprovals -gt 0) { '<span style="font-size:14px;">&#x26A0;</span> Approval Needed' } else { '<span style="font-size:14px;">&#x2714;</span> None Pending' })
+        </td>
+        <td style="padding:10px;">Pending: $($stats.PendingDLLApprovals), Approved: $($stats.ApprovedDLLs)</td>
+    </tr>
+    </table>
+</td>
+</tr>
+
 <!-- Footer -->
 <tr>
-<td bgcolor="#f5f5f5" style="padding:20px;text-align:center;font-size:12px;color:#666;">
-    <p style="margin:0;">SharePoint Security Monitor v3.9 - Advanced DLL Validation Edition</p>
-    <p style="margin:5px 0 0 0;">Report generated on $env:COMPUTERNAME at $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")</p>
-    <p style="margin:5px 0 0 0;">For support: soc@goline.ch</p>
+<td bgcolor="#e8eaf6" align="center" style="padding:20px;border-top:1px solid #c5cae9;">
+    <p style="margin:0;color:#5c6bc0;font-size:14px;">
+        <strong><span style="font-size:16px;">&#x1F512;</span> SharePoint Security Monitoring System v4.0</strong><br />
+        Report generated on $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")<br />
+        <span style="font-size:16px;">&#x1F6E1;</span> Monitoring for: CVE-2023-29357, CVE-2023-33157<br />
+        <span style="font-size:16px;">&#x1F47F;</span> Advanced threat detection for APT groups and ransomware<br />
+        <span style="font-size:16px;">&#x1F527;</span> Enhanced with real-time security monitoring and threat intelligence<br />
+        <span style="font-size:16px;">&#x1F680;</span> Performance optimizations: Incremental log reading, event caching, smart bookmarks<br />
+        <span style="font-size:16px;">&#x1F4E7;</span> Auto email alerts: Enabled for warnings and critical issues<br />
+        <span style="font-size:16px;">&#x1F4CA;</span> v4.0: Enhanced DLL management with auto-approval and detailed attack reporting
+    </p>
+    <p style="margin:10px 0 0 0;color:#7986cb;font-size:12px;">
+        <span style="font-size:14px;">&#x1F4E7;</span> GOLINE Security Operations Center | soc@goline.ch
+    </p>
 </td>
 </tr>
 
 </table>
+<!-- End Main Container -->
+
 </td>
 </tr>
 </table>
 </body>
 </html>
 "@
-
+    
     return $html
 }
 
-# Generate report
-$report = Generate-HTMLReport
+# Determine if we should send an alert
+$shouldSendAlert = $ForceAlert -or $SendDailySummary -or $AlwaysSendReport
 
-# Save report to file
-$reportFile = "$ReportPath\SecurityReport_$(Get-Date -Format 'yyyyMMdd_HHmmss').html"
-$report | Out-File $reportFile -Force
-Write-SecurityLog "Report saved to: $reportFile" "INFO"
-
-# Clean up old reports (keep last 30)
-Get-ChildItem $ReportPath -Filter "SecurityReport_*.html" |
-    Sort-Object CreationTime -Descending |
-    Select-Object -Skip 30 |
-    Remove-Item -Force
-
-# 12. EMAIL ALERT SYSTEM - ENHANCED WITH AUTO EMAIL
-$shouldSendEmail = $false
-$emailSubject = ""
-$emailPriority = "Normal"
-
-# Determine if we should send email based on parameters and findings
-if ($ForceAlert) {
-    $shouldSendEmail = $true
-    $emailSubject = "[FORCED] SharePoint Security Alert - $env:COMPUTERNAME"
-    $emailPriority = "High"
-    Write-SecurityLog "Force alert parameter set - email will be sent" "INFO"
-} elseif ($AlwaysSendReport) {
-    $shouldSendEmail = $true
-    $emailSubject = "SharePoint Security Report - $env:COMPUTERNAME - $(Get-Date -Format 'yyyy-MM-dd')"
-    Write-SecurityLog "Always send report parameter set - email will be sent" "INFO"
-} else {
-    # Check conditions for automatic email
-    $alertCount = $global:SecurityResults.Alerts.Count
-    $warningCount = $global:SecurityResults.Warnings.Count
-    $stats = $global:SecurityResults.Statistics
-
-    # Critical conditions that always trigger email
-    if ($alertCount -gt 0) {
-        $shouldSendEmail = $true
-        $emailPriority = "High"
-        $emailSubject = "[CRITICAL] SharePoint Security Alert - $env:COMPUTERNAME - $alertCount Alerts"
-        Write-SecurityLog "Critical alerts detected - email will be sent" "INFO"
-    }
-    # Warning conditions (unless NoAlertOnWarnings is set)
-    elseif ($warningCount -gt 0 -and -not $NoAlertOnWarnings) {
-        $shouldSendEmail = $true
-        $emailSubject = "[WARNING] SharePoint Security Alert - $env:COMPUTERNAME - $warningCount Warnings"
-        Write-SecurityLog "Warnings detected - email will be sent" "INFO"
-    }
-    # Specific threat conditions
-    elseif ($stats.ToolPaneExploits -gt 0 -or $stats.WebshellsFound -gt 0 -or
-            $stats.RansomwareIndicators -gt 0 -or $stats.ThreatActorActivity -gt 0 -or
-            $stats.PostExploitationTools -gt 0 -or $stats.C2Communications -gt 0) {
-        $shouldSendEmail = $true
-        $emailPriority = "High"
-        $emailSubject = "[THREAT DETECTED] SharePoint Security Alert - $env:COMPUTERNAME"
-        Write-SecurityLog "Active threats detected - email will be sent" "INFO"
-    }
-    # Configuration issues
-    elseif ($stats.MissingPatches.Count -gt 0 -or $stats.DefenderDisabled -gt 0 -or
-            $stats.IntegrityIssues -gt 0) {
-        $shouldSendEmail = $true
-        $emailSubject = "[SECURITY ISSUE] SharePoint Security Alert - $env:COMPUTERNAME"
-        Write-SecurityLog "Security configuration issues detected - email will be sent" "INFO"
-    }
+# Alert for any critical issues OR warnings (unless NoAlertOnWarnings is set)
+if ($global:SecurityResults.Alerts.Count -gt 0) {
+    $shouldSendAlert = $true
+} elseif ($global:SecurityResults.Warnings.Count -gt 0 -and -not $NoAlertOnWarnings) {
+    $shouldSendAlert = $true
 }
 
-# Send daily summary if requested (overrides other conditions)
-if ($SendDailySummary) {
-    $shouldSendEmail = $true
-    $emailSubject = "SharePoint Security Daily Summary - $env:COMPUTERNAME - $(Get-Date -Format 'yyyy-MM-dd')"
-    $emailPriority = "Normal"
-    Write-SecurityLog "Daily summary requested - email will be sent" "INFO"
+# Alert for specific indicators including new security checks
+if ($CVEIndicators.ToolPaneExploits.Count -gt 0 -or 
+    $global:SecurityResults.Statistics.KnownAttackerConnections -gt 0 -or
+    $CVEIndicators.InternalSuspiciousActivity.Count -gt 0 -or
+    $CVEIndicators.DLLPayloads.Count -gt 0 -or
+    $CVEIndicators.RansomwareIndicators.Count -gt 0 -or
+    $CVEIndicators.PostExploitationTools.Count -gt 0 -or
+    $CVEIndicators.C2Communications.Count -gt 0 -or
+    $CVEIndicators.ThreatActorActivity.Count -gt 0 -or
+    ($CVEIndicators.DefenderDisabled.Count -gt 0 -and -not $esetEnabled) -or
+    $CVEIndicators.GPOModifications.Count -gt 0 -or
+    $CVEIndicators.LSASSAccess.Count -gt 0 -or
+    $global:SecurityResults.Statistics.MissingPatches.Count -gt 0 -or
+    ($global:SecurityResults.Statistics.BaselineNewDLLs -gt 0 -and $global:SecurityResults.Statistics.BaselineNewDLLs -gt 5) -or
+    $global:SecurityResults.Statistics.IntegrityIssues -gt 0) {
+    $shouldSendAlert = $true
 }
 
-# Send email if conditions are met
-if ($shouldSendEmail) {
-    try {
-        # Prepare email parameters
-        $mailParams = @{
-            To = $AlertEmail
-            From = $FromEmail
-            Subject = $emailSubject
-            Body = $report
-            BodyAsHtml = $true
-            SmtpServer = $SMTPServer
-            Priority = $emailPriority
-        }
-
-        # Add report as attachment for critical alerts
-        if ($emailPriority -eq "High" -or $SendDailySummary -or $AlwaysSendReport) {
-            $mailParams.Attachments = $reportFile
-        }
-
-        Send-MailMessage @mailParams -ErrorAction Stop
-
-        Write-SecurityLog "Security alert email sent successfully to $AlertEmail" "SUCCESS"
-        Write-SecurityLog "Email subject: $emailSubject" "INFO"
-    } catch {
-        Write-SecurityLog "Failed to send email alert: $_" "ERROR"
-        Write-SecurityLog "Please check SMTP settings: Server=$SMTPServer, From=$FromEmail, To=$AlertEmail" "ERROR"
+if ($shouldSendAlert) {
+    # Determine reason for sending
+    $sendReason = if ($AlwaysSendReport) { "AlwaysSendReport parameter" }
+                  elseif ($ForceAlert) { "ForceAlert parameter" }
+                  elseif ($SendDailySummary) { "Daily summary report" }
+                  elseif ($global:SecurityResults.Alerts.Count -gt 0) { "Critical alerts detected ($($global:SecurityResults.Alerts.Count))" }
+                  elseif ($global:SecurityResults.Warnings.Count -gt 0) { "Warnings detected ($($global:SecurityResults.Warnings.Count))" }
+                  else { "Security indicators detected" }
+    
+    Write-SecurityLog "Sending security report email (Reason: $sendReason)..." "INFO"
+    
+    $htmlReport = Generate-HTMLReport
+    
+    # Determine email priority and subject
+    $hasKnownAttackers = $global:SecurityResults.Statistics.KnownAttackerConnections -gt 0 -or 
+                         ($CVEIndicators.ToolPaneExploits | Where-Object {$_.IsKnownAttacker}).Count -gt 0
+    
+    $hasThreatActors = $CVEIndicators.ThreatActorActivity.Count -gt 0
+    $hasRansomware = $CVEIndicators.RansomwareIndicators.Count -gt 0
+    $hasPostExploitation = $CVEIndicators.PostExploitationTools.Count -gt 0
+    $hasMissingPatches = $global:SecurityResults.Statistics.MissingPatches.Count -gt 0
+    $hasDefenderTampering = $CVEIndicators.DefenderDisabled.Count -gt 0 -and -not $esetEnabled
+    $hasIntegrityIssues = $global:SecurityResults.Statistics.IntegrityIssues -gt 0
+    $hasSignificantDLLChanges = $global:SecurityResults.Statistics.BaselineNewDLLs -gt 0 -and $global:SecurityResults.Statistics.BaselineModifiedDLLs -gt 3
+    
+    $priority = if ($hasThreatActors -or $hasKnownAttackers -or $hasRansomware -or $hasPostExploitation -or $hasMissingPatches -or $hasDefenderTampering -or $hasIntegrityIssues -or $global:SecurityResults.Alerts.Count -gt 0) { 
+        "High" 
+    } else { 
+        "Normal" 
     }
-} else {
-    if ($NoAlertOnWarnings -and $warningCount -gt 0) {
-        Write-SecurityLog "Warnings detected but email suppressed due to -NoAlertOnWarnings parameter" "INFO"
+    
+    $subjectStatus = if ($hasThreatActors) {
+        "CRITICAL - APT ACTORS DETECTED!"
+    } elseif ($hasRansomware) {
+        "CRITICAL - RANSOMWARE DETECTED!"
+    } elseif ($hasPostExploitation) {
+        "CRITICAL - Post-Exploitation Tools Active!"
+    } elseif ($hasIntegrityIssues) {
+        "CRITICAL - SharePoint Files Tampered!"
+    } elseif ($hasMissingPatches) {
+        "CRITICAL - Missing Security Patches!"
+    } elseif ($hasDefenderTampering) {
+        "CRITICAL - Defender Tampering!"
+    } elseif ($hasKnownAttackers) {
+        "CRITICAL - Known Attackers Detected!"
+    } elseif ($hasSignificantDLLChanges) {
+        "WARNING - Significant DLL Changes"
+    } elseif ($global:SecurityResults.Alerts.Count -gt 0) { 
+        "CRITICAL - $($global:SecurityResults.Alerts.Count) Alerts" 
+    } elseif ($global:SecurityResults.Warnings.Count -gt 0) { 
+        "WARNING - $($global:SecurityResults.Warnings.Count) Issues" 
+    } else { 
+        "OK - System Secure" 
+    }
+    
+    $subject = if ($SendDailySummary) {
+        "[SharePoint Security] Daily Summary - $subjectStatus"
     } else {
-        Write-SecurityLog "No critical issues detected - email alert not sent" "INFO"
+        "[SharePoint Security] Alert - $subjectStatus"
+    }
+    
+    try {
+        Send-MailMessage -To $AlertEmail `
+            -From $FromEmail `
+            -Subject $subject `
+            -Body $htmlReport `
+            -BodyAsHtml `
+            -SmtpServer $SMTPServer `
+            -Priority $priority
+            
+        Write-SecurityLog "Security report email sent successfully" "SUCCESS"
+    } catch {
+        Write-SecurityLog "Failed to send email report: $_" "ERROR"
+        
+        # Save report locally as fallback
+        $reportFile = "$ReportPath\SecurityReport_$(Get-Date -Format 'yyyyMMdd_HHmmss').html"
+        $htmlReport | Out-File $reportFile -Force
+        Write-SecurityLog "Report saved locally: $reportFile" "INFO"
     }
 }
+
+# Always save report locally
+$reportFile = "$ReportPath\SecurityReport_$(Get-Date -Format 'yyyyMMdd_HHmmss').html"
+$htmlReport = Generate-HTMLReport
+$htmlReport | Out-File $reportFile -Force
+Write-SecurityLog "Report saved locally: $reportFile" "INFO"
+
+# Log email status
+if (-not $shouldSendAlert) {
+    if ($global:SecurityResults.Warnings.Count -gt 0 -and $NoAlertOnWarnings) {
+        Write-SecurityLog "Email report NOT sent. Warnings found but -NoAlertOnWarnings is set." "INFO"
+    } else {
+        Write-SecurityLog "Email report NOT sent. Use -AlwaysSendReport, -ForceAlert or -SendDailySummary to send email." "INFO"
+    }
+}
+
+Write-SecurityLog "=== Monitoring completed ===" "INFO"
+Write-SecurityLog "Alerts: $($global:SecurityResults.Alerts.Count) | Warnings: $($global:SecurityResults.Warnings.Count)" "INFO"
 
 # Stop main timer
 $global:MainTimer.Stop()
+$totalTime = $global:MainTimer.Elapsed.TotalSeconds
 
-# 13. SUMMARY OUTPUT
-Write-SecurityLog "" "INFO"
-Write-SecurityLog "=== SharePoint Security Monitoring Complete ===" "INFO"
-Write-SecurityLog "Total Execution Time: $([math]::Round($global:MainTimer.Elapsed.TotalSeconds, 2)) seconds" "INFO"
-Write-SecurityLog "" "INFO"
-Write-SecurityLog "SUMMARY:" "INFO"
-Write-SecurityLog "- Critical Alerts: $($global:SecurityResults.Alerts.Count)" $(if ($global:SecurityResults.Alerts.Count -gt 0) { "ALERT" } else { "SUCCESS" })
-Write-SecurityLog "- Warnings: $($global:SecurityResults.Warnings.Count)" $(if ($global:SecurityResults.Warnings.Count -gt 0) { "WARNING" } else { "SUCCESS" })
-Write-SecurityLog "- ToolPane Exploits: $($global:SecurityResults.Statistics.ToolPaneExploits)" $(if ($global:SecurityResults.Statistics.ToolPaneExploits -gt 0) { "ALERT" } else { "SUCCESS" })
-Write-SecurityLog "- Webshells Found: $($global:SecurityResults.Statistics.WebshellsFound)" $(if ($global:SecurityResults.Statistics.WebshellsFound -gt 0) { "ALERT" } else { "SUCCESS" })
-Write-SecurityLog "- Suspicious DLLs: $($global:SecurityResults.Statistics.DLLPayloads)" $(if ($global:SecurityResults.Statistics.DLLPayloads -gt 0) { "ALERT" } else { "SUCCESS" })
-Write-SecurityLog "- Post-Exploitation Tools: $($global:SecurityResults.Statistics.PostExploitationTools)" $(if ($global:SecurityResults.Statistics.PostExploitationTools -gt 0) { "ALERT" } else { "SUCCESS" })
-Write-SecurityLog "- Threat Actor Activity: $($global:SecurityResults.Statistics.ThreatActorActivity)" $(if ($global:SecurityResults.Statistics.ThreatActorActivity -gt 0) { "ALERT" } else { "SUCCESS" })
-Write-SecurityLog "- Total Attacks Detected: $($global:SecurityResults.Statistics.AllAttacks)" $(if ($global:SecurityResults.Statistics.AllAttacks -gt 0) { "ALERT" } else { "SUCCESS" })
+# Performance Report
+Write-Host "`n=== PERFORMANCE REPORT ===" -ForegroundColor Cyan
+Write-Host "Total execution time: $([math]::Round($totalTime, 2)) seconds" -ForegroundColor Yellow
 
-if ($global:SecurityResults.Statistics.PendingDLLApprovals -gt 0) {
-    Write-SecurityLog "" "INFO"
-    Write-SecurityLog "ACTION REQUIRED: $($global:SecurityResults.Statistics.PendingDLLApprovals) DLLs pending approval" "WARNING"
-    Write-SecurityLog "Run with -ReviewPendingDLLs to review and approve legitimate DLLs" "WARNING"
+if ($global:PerformanceTimers.Count -gt 0) {
+    Write-Host "`nSection breakdown:" -ForegroundColor Yellow
+    $global:PerformanceTimers.GetEnumerator() | 
+        Sort-Object {$_.Value.Elapsed.TotalSeconds} -Descending | 
+        ForEach-Object {
+            $percent = [math]::Round(($_.Value.Elapsed.TotalSeconds / $totalTime) * 100, 1)
+            Write-Host ("  {0,-35} {1,8:N2}s ({2,5:N1}%)" -f $_.Key, $_.Value.Elapsed.TotalSeconds, $percent)
+        }
 }
 
-Write-SecurityLog "" "INFO"
-Write-SecurityLog "Report Location: $reportFile" "INFO"
-Write-SecurityLog "Email Status: $(if ($shouldSendEmail) { 'Sent' } else { 'Not required' })" "INFO"
+Write-Host "`nPerformance metrics:" -ForegroundColor Yellow
+Write-Host "  Total events processed: $($global:SecurityResults.Statistics.TotalEventsProcessed)" -ForegroundColor White
+Write-Host "  Cached events skipped: $($global:SecurityResults.Statistics.CachedEventsSkipped)" -ForegroundColor White
+$cacheStatus = if ($DisableEventCache) { " (cache disabled)" } else { "" }
+Write-Host "  Cache hit rate: $('{0:N1}%' -f (($global:SecurityResults.Statistics.CachedEventsSkipped / [Math]::Max($global:SecurityResults.Statistics.TotalEventsProcessed, 1)) * 100))$cacheStatus" -ForegroundColor White
+Write-Host "  Scan mode: $(if ($FullHistoricalScan) { 'Full Historical (30d)' } elseif ($QuickScan) { 'Quick (12h)' } else { "Standard ($MaxDaysToScan" + "d)" })" -ForegroundColor White
 
-# Exit with appropriate code
-if ($global:SecurityResults.Alerts.Count -gt 0) {
+# Final summary with key findings
+if ($global:SecurityResults.Alerts.Count -eq 0 -and $global:SecurityResults.Warnings.Count -eq 0) {
+    Write-Host "`n[OK] No critical security issues detected" -ForegroundColor Green
+    Write-Host "  - Machine keys rotated: $(if($global:SecurityResults.Statistics.MachineKeyRotated){'Yes'}else{'No'})" -ForegroundColor Green
+    Write-Host "  - AMSI enabled: $(if($global:SecurityResults.Statistics.AMSIEnabled){'Yes'}else{'No'})" -ForegroundColor Green
+    Write-Host "  - Patches installed: $(if($global:SecurityResults.Statistics.MissingPatches.Count -eq 0){'All patches installed'}else{if($global:SecurityResults.Statistics.MissingPatches -join '' -match 'SharePoint 2019'){"SharePoint 2019 needs update to build 16.0.10398.20000+"}else{"Missing: $($global:SecurityResults.Statistics.MissingPatches -join ', ')"}})" -ForegroundColor $(if($global:SecurityResults.Statistics.MissingPatches.Count -eq 0){'Green'}else{'Red'})
+    Write-Host "  - Endpoint Protection: $($global:SecurityResults.Statistics.EndpointProtection)" -ForegroundColor $(if($global:SecurityResults.Statistics.ESETEnabled -or $global:SecurityResults.Statistics.DefenderForEndpoint){'Green'}else{'Yellow'})
+    if ($global:SecurityResults.Statistics.ESETEnabled) {
+        Write-Host "  - Security features: ESET provides credential, ransomware & exploit protection" -ForegroundColor Green
+    } else {
+        Write-Host "  - Security features: LSA=$($global:SecurityResults.Statistics.LSAProtection), CG=$($global:SecurityResults.Statistics.CredentialGuard), CFA=$($global:SecurityResults.Statistics.ControlledFolderAccess)" -ForegroundColor Yellow
+    }
+    if ($global:SecurityResults.Statistics.BaselineNewDLLs -gt 0 -or $global:SecurityResults.Statistics.BaselineModifiedDLLs -gt 0) {
+        Write-Host "  - DLL baseline: +$($global:SecurityResults.Statistics.BaselineNewDLLs) new, ~$($global:SecurityResults.Statistics.BaselineModifiedDLLs) modified" -ForegroundColor Yellow
+    } else {
+        Write-Host "  - DLL baseline: No changes detected" -ForegroundColor Green
+    }
+    if ($global:SecurityResults.Statistics.IntegrityIssues -gt 0) {
+        Write-Host "  - File integrity: $($global:SecurityResults.Statistics.IntegrityIssues) issues found!" -ForegroundColor Red
+    } else {
+        Write-Host "  - File integrity: All SharePoint files intact" -ForegroundColor Green
+    }
+    $efficiencyPercent = if ($totalDLLsScanned -gt 0) { [int](($legitimateDLLsSkipped / $totalDLLsScanned) * 100) } else { 0 }
+    Write-Host "  - DLL scan efficiency: $efficiencyPercent% false positives filtered" -ForegroundColor Green
+    Write-Host "  - DLL approval system: $($global:SecurityResults.Statistics.ApprovedDLLs) approved, $($global:SecurityResults.Statistics.PendingDLLApprovals) pending" -ForegroundColor $(if($global:SecurityResults.Statistics.PendingDLLApprovals -gt 0){'Yellow'}else{'Green'})
+    Write-Host "  - Total attacks tracked: $($global:SecurityResults.Statistics.AllAttacks)" -ForegroundColor Green
+    Write-Host "  - Email report: $(if($shouldSendAlert){'Sent'}else{'Not sent (no issues found)'})" -ForegroundColor $(if($shouldSendAlert){'Green'}else{'Green'})
+} else {
+    Write-Host "`n[WARNING] Security issues detected - check report for details" -ForegroundColor Yellow
+    Write-Host "  - Alerts: $($global:SecurityResults.Alerts.Count) | Warnings: $($global:SecurityResults.Warnings.Count)" -ForegroundColor Yellow
+    Write-Host "  - Total attacks detected: $($global:SecurityResults.Statistics.AllAttacks)" -ForegroundColor Red
+    if ($global:SecurityResults.Statistics.MissingPatches.Count -gt 0) {
+        if ($global:SecurityResults.Statistics.MissingPatches -join '' -match 'SharePoint 2019') {
+            Write-Host "  [CRITICAL] SharePoint 2019 needs update to build 16.0.10398.20000 or later" -ForegroundColor Red
+        } else {
+            Write-Host "  [CRITICAL] Missing patches: $($global:SecurityResults.Statistics.MissingPatches -join ', ')" -ForegroundColor Red
+        }
+    }
+    # Only show Defender tampering if not using ESET
+    if ($CVEIndicators.DefenderDisabled.Count -gt 0 -and -not $global:SecurityResults.Statistics.ESETEnabled) {
+        Write-Host "  [CRITICAL] Microsoft Defender tampering detected!" -ForegroundColor Red
+    }
+    if ($global:SecurityResults.Statistics.IntegrityIssues -gt 0) {
+        Write-Host "  [CRITICAL] SharePoint file integrity compromised - $($global:SecurityResults.Statistics.IntegrityIssues) files affected!" -ForegroundColor Red
+    }
+    if ($global:SecurityResults.Statistics.PendingDLLApprovals -gt 0) {
+        Write-Host "  [ACTION] $($global:SecurityResults.Statistics.PendingDLLApprovals) DLLs pending review - run with -ReviewPendingDLLs" -ForegroundColor Yellow
+    }
+    $emailStatusMsg = if ($shouldSendAlert) { 
+        "Email sent automatically" 
+    } elseif ($NoAlertOnWarnings -and $global:SecurityResults.Warnings.Count -gt 0 -and $global:SecurityResults.Alerts.Count -eq 0) {
+        "Not sent (warnings only, -NoAlertOnWarnings set)"
+    } else {
+        "Should have been sent (check SMTP settings)"
+    }
+    Write-Host "  - Email report: $emailStatusMsg" -ForegroundColor $(if($shouldSendAlert){'Green'}else{'Yellow'})
+}
+
+# Return exit code based on findings
+if ($global:SecurityResults.Alerts.Count -gt 0 -or $CVEIndicators.ThreatActorActivity.Count -gt 0 -or $global:SecurityResults.Statistics.MissingPatches.Count -gt 0) {
     exit 2  # Critical
 } elseif ($global:SecurityResults.Warnings.Count -gt 0) {
     exit 1  # Warning
 } else {
-    exit 0  # Success
+    exit 0  # OK
 }
-
-# END OF SCRIPT
-
