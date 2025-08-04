@@ -1,10 +1,10 @@
-# 🛡️ SharePoint Security Monitor v4.0
+# 🛡️ SharePoint Security Monitor v5.0
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
 [![SharePoint](https://img.shields.io/badge/SharePoint-2016%2F2019-green.svg)](https://www.microsoft.com/en-us/microsoft-365/sharepoint/collaboration)
 
-> 🚀 A comprehensive PowerShell-based SharePoint security monitoring solution with CVE-2025-53770 protection, advanced DLL analysis, threat detection, and automated alerting capabilities.
+> 🚀 A comprehensive PowerShell-based SharePoint security monitoring solution with CVE-2023-29357 and CVE-2023-33157 protection, intelligent DLL management, advanced threat detection, and automated alerting capabilities.
 
 ## 📋 Table of Contents
 
@@ -30,22 +30,32 @@ The original 5,519-line PowerShell script has been successfully transformed into
 ## ✨ Key Features
 
 ### 🛡️ Security Features
-- **🔍 CVE-Specific Protection**: Dedicated detection for CVE-2025-53770
-- **🧬 Advanced DLL Analysis**: ML-based threat scoring with signature verification
-- **🎯 Real-time Threat Detection**: Pattern matching and correlation analysis
-- **📊 Behavioral Analysis**: API import analysis and entropy calculation
+- **🔍 CVE-Specific Protection**: Dedicated detection for CVE-2023-29357 and CVE-2023-33157
+- **🧬 Intelligent DLL Management**: Auto-approval system with pending review queue
+- **🎯 Real-time Threat Detection**: Advanced threat actor identification and tracking
+- **📊 Comprehensive Attack Tracking**: Unified attack timeline with 20+ attack types
+- **🔐 LSASS Memory Protection**: Detection of credential theft attempts
+- **�️ Defender Tampering Detection**: Monitoring for security software disabling
+- **📋 GPO Monitoring**: Detection of suspicious Group Policy modifications
+- **🔄 Reflective DLL Injection Detection**: Advanced memory injection detection
+- **🚨 Ransomware Detection**: Multiple ransomware family identification
+- **🌐 C2 Communication Detection**: Known C2 domains and IPs monitoring
 
 ### 🏗️ Architecture Features
-- **📦 Modular Architecture**: 5 specialized PowerShell modules
-- **⚡ Performance Optimized**: Incremental log reading with caching
-- **🔄 Parallel Processing**: Multi-threaded analysis capabilities
-- **💾 Smart Caching**: Event caching and log bookmarks
+- **📦 Enhanced Architecture**: Single optimized script with modular functions
+- **⚡ Performance Optimized**: Incremental log reading with smart bookmarks
+- **🔄 Event Caching**: Efficient duplicate event filtering
+- **💾 Smart Caching**: Daily cache files with automatic cleanup
+- **📊 Baseline Management**: DLL and file integrity baseline systems
+- **🔒 Multi-Layer Security**: ESET and Microsoft Defender compatibility
 
 ### 📢 Monitoring & Alerting
-- **📧 Automated Email Alerting**: Comprehensive notifications to security team
-- **📈 Interactive Reporting**: HTML reports with charts and visualizations
-- **⚙️ Configuration Management**: Environment-specific settings
-- **🔐 Secure Credential Handling**: Encrypted sensitive data storage
+- **📧 Smart Email Alerting**: Configurable alerts with -NoAlertOnWarnings option
+- **📈 Enhanced HTML Reports**: Comprehensive attack timeline and statistics
+- **⚙️ Scheduled Task Management**: Automated hourly, daily, and startup scans
+- **🔐 Detailed Attack Analysis**: IP-based threat actor identification
+- **📊 Performance Metrics**: Execution time tracking and cache hit rates
+- **🎯 Pending DLL Management**: Review and approval workflow for DLLs
 
 ## 🏗️ Solution Architecture
 
@@ -57,12 +67,12 @@ The original 5,519-line PowerShell script has been successfully transformed into
 - 📊 Progress reporting and execution time tracking
 - ⚡ Support for quick scans, baseline creation, and task management
 
-#### 2️⃣ **Modular Architecture** (5 Specialized Modules)
-- 📝 **SecurityLogger.psm1**: Advanced logging with SIEM integration
-- 🔬 **DLLAnalyzer.psm1**: Comprehensive DLL analysis with ML-based detection
-- 🎯 **ThreatDetector.psm1**: Pattern matching and threat correlation
-- ⚙️ **ConfigManager.psm1**: Centralized configuration management
-- 📊 **ReportGenerator.psm1**: HTML reporting with charts and visualizations
+#### 2️⃣ **Core Functionality** (Integrated Functions)
+- 📝 **Advanced Logging**: Performance tracking with timer functions
+- 🔬 **DLL Analysis**: Intelligent Test-SuspiciousDLL with auto-approval
+- 🎯 **Threat Detection**: Real-time pattern matching and correlation
+- ⚙️ **Configuration**: JSON-based configuration with secure handling
+- 📊 **Report Generation**: Comprehensive HTML reports with attack timeline
 
 #### 3️⃣ **Configuration System**
 - 📋 **SharePointSecurityConfig.json**: Production-ready configuration
@@ -78,8 +88,11 @@ The original 5,519-line PowerShell script has been successfully transformed into
 
 ### 📌 Basic Usage
 ```powershell
-# Standard security scan
+# Standard security scan with email on alerts/warnings
 .\SharePoint-Security-Monitor.ps1
+
+# Standard scan with custom max days
+.\SharePoint-Security-Monitor.ps1 -MaxDaysToScan 7
 ```
 
 ### 🎯 Common Operations
@@ -90,14 +103,43 @@ The original 5,519-line PowerShell script has been successfully transformed into
 # 📐 Create DLL baseline
 .\SharePoint-Security-Monitor.ps1 -CreateBaseline
 
-# 👁️ Review pending DLL approvals
+# 👁️ Review and approve pending DLLs
 .\SharePoint-Security-Monitor.ps1 -ReviewPendingDLLs
 
-# 🔍 File integrity check
+# 🤖 Auto-approve legitimate DLLs
+.\SharePoint-Security-Monitor.ps1 -AutoApproveDLLs
+
+# 🔍 Check SharePoint file integrity
 .\SharePoint-Security-Monitor.ps1 -CheckIntegrity
 
-# 📧 Force email alert with detailed report
-.\SharePoint-Security-Monitor.ps1 -ForceAlert -AlwaysSendReport
+# 📧 Force email alert
+.\SharePoint-Security-Monitor.ps1 -ForceAlert
+
+# 📊 Always send report regardless of findings
+.\SharePoint-Security-Monitor.ps1 -AlwaysSendReport
+
+# 🔕 Only alert on critical issues (not warnings)
+.\SharePoint-Security-Monitor.ps1 -NoAlertOnWarnings
+
+# 🗓️ Full historical scan (30 days)
+.\SharePoint-Security-Monitor.ps1 -FullHistoricalScan
+
+# 🔄 Reset log reading bookmarks
+.\SharePoint-Security-Monitor.ps1 -ResetBookmarks
+
+# 🗑️ Clear event cache
+.\SharePoint-Security-Monitor.ps1 -ClearCache
+
+# ⚙️ Manage scheduled tasks
+.\SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Install
+.\SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Status
+.\SharePoint-Security-Monitor.ps1 -ManageTasks -TaskAction Remove
+
+# 🚫 Disable event caching for debugging
+.\SharePoint-Security-Monitor.ps1 -DisableEventCache
+
+# 📏 Process larger log files (default 250MB)
+.\SharePoint-Security-Monitor.ps1 -MaxLogSizeMB 500
 
 # ✅ Auto-approve legitimate DLLs
 .\SharePoint-Security-Monitor.ps1 -AutoApproveDLLs
@@ -127,35 +169,72 @@ The original 5,519-line PowerShell script has been successfully transformed into
 ## 📁 File Structure
 
 ```
-📂 Enhanced SharePoint Security Monitor/
-├── 📄 SharePoint-Security-Monitor.ps1    # Main script
+📂 SharePoint Security Monitor/
+├── 📄 SharePoint-Security-Monitor.ps1              # Main monitoring script
 ├── 🎮 Demo-EnhancedScript.ps1                     # Demonstration script
 ├── ⚙️  SharePointSecurityConfig.json               # Configuration file
-├── 📦 Modules/
-│   ├── 📝 SecurityLogger.psm1                     # Logging module
-│   ├── 🔬 DLLAnalyzer.psm1                        # DLL analysis module
-│   ├── 🎯 ThreatDetector.psm1                     # Threat detection module
-│   ├── ⚙️  ConfigManager.psm1                      # Configuration module
-│   └── 📊 ReportGenerator.psm1                    # Reporting module
-├── 💾 Data/                                        # Data storage
-│   ├── 📐 DLLBaseline.json                        # DLL baseline data
-│   ├── 🔍 ThreatSignatures.json                   # Known threat signatures
-│   ├── ✅ KnownGoodDLLs.json                      # Approved DLLs
-│   ├── ⏳ PendingDLLApprovals.json                # Pending approvals
-│   ├── 💭 EventCache.json                         # Event processing cache
-│   └── 📑 LogBookmarks.json                       # Log reading positions
-├── 📝 Logs/                                        # Log files
-├── 📊 Reports/                                     # Generated reports
-├── ⚙️  Config/                                      # Configuration management
-│   ├── 🌍 Environment/                             # Environment-specific configs
-│   └── 🔐 Secure/                                  # Encrypted configurations
-└── 📋 Templates/                                   # Report templates
+├── 📋 README.md                                    # Documentation
+├── 📄 changelog-file.md                            # Version history
+└── 📋 contributing-guide.md                        # Contribution guidelines
+
+📂 Runtime Directories (auto-created)
+├── Logs/                                        # Security logs
+│   └── SecurityMonitor_YYYYMMDD.log               # Daily log files
+├── Reports/                                     # HTML reports
+│   └── SecurityReport_YYYYMMDD_HHMMSS.html        # Timestamped reports
+├── Baselines/                                   # Baseline data
+│   ├── DLL_Baseline.json                          # DLL inventory baseline
+│   ├── SharePoint_Integrity.json                  # File integrity baseline
+│   ├── PendingDLLApproval.json                   # DLLs awaiting approval
+│   └── ApprovedDLLs.json                          # Whitelisted DLLs
+├── Bookmarks/                                   # Log reading positions
+│   └── LogReadingBookmarks.json                   # Incremental read tracking
+└── Cache/                                       # Event processing cache
+    └── ProcessedEvents_YYYYMMDD.json              # Daily event cache
 ```
+
+## 🆕 What's New in Version 5.0
+
+### 🛡️ Enhanced Security Detection
+- **🔍 Real CVE Protection**: Updated to detect CVE-2023-29357 and CVE-2023-33157 (real vulnerabilities)
+- **🎯 Advanced Threat Actor Tracking**: Identifies known APT groups and ransomware operators
+- **🔐 Credential Theft Detection**: LSASS memory access monitoring with intelligent process filtering
+- **🛡️ Security Software Monitoring**: Detects Microsoft Defender and GPO tampering
+- **💉 Reflective DLL Injection Detection**: Monitors CreateRemoteThread events
+- **🏷️ Comprehensive Attack Tracking**: Unified timeline of all security events
+
+### 🧬 Intelligent DLL Management
+- **🤖 Auto-Approval System**: Automatically approves legitimate Microsoft-signed DLLs
+- **📋 Pending Review Queue**: DLLs requiring manual review are queued for approval
+- **✅ SharePoint Component Recognition**: Smart detection of legitimate SharePoint ASP.NET components
+- **🔍 Enhanced Filtering**: Reduced false positives with intelligent pattern matching
+- **📊 Approval Workflow**: Interactive review process with hash-based tracking
+
+### ⚡ Performance Optimizations
+- **📚 Incremental Log Reading**: Bookmark system tracks last read position in logs
+- **💾 Event Caching**: Daily cache files prevent duplicate event processing
+- **� Smart Skip Logic**: Unchanged logs are automatically skipped
+- **📊 Cache Hit Tracking**: Performance metrics show cache efficiency
+- **🧹 Automatic Cleanup**: Old cache and log files are automatically removed
+
+### 📊 Enhanced Reporting
+- **📈 Attack Timeline**: Complete chronological view of all attacks
+- **🎯 Attack Type Analysis**: Statistical breakdown by attack category
+- **🌐 IP-Based Analysis**: Detailed attacker IP tracking and correlation
+- **📊 Executive Dashboard**: At-a-glance security metrics
+- **🔍 Detailed Drill-Down**: Comprehensive attack details with threat actor attribution
+
+### 🔧 Operational Features
+- **📅 Automated Task Management**: Built-in scheduled task installation and management
+- **🔄 Flexible Scan Modes**: Quick (12h), Standard (configurable), Full Historical (30d)
+- **📧 Smart Email Alerts**: Configurable alerting with -NoAlertOnWarnings option
+- **🧪 ESET Compatibility**: Intelligent detection of ESET vs Microsoft Defender
+- **🔒 Baseline Systems**: DLL baseline and SharePoint file integrity checking
 
 ## 🆕 Key Enhancements Over Original v3.9
 
 ### ⚡ Performance Improvements
-- **📦 Modular Design**: Reduced monolithic 5,519-line script to specialized modules
+- **📦 Optimized Design**: Enhanced 4,823-line script with modular functions
 - **💾 Caching System**: Event caching and log bookmarks for incremental processing
 - **🔄 Parallel Processing**: Multi-threaded analysis for large datasets
 - **🧠 Memory Optimization**: Configurable memory limits and compression caching
