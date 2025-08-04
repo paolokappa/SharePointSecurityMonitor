@@ -25,7 +25,7 @@
 
 ## 🌟 Project Overview
 
-The original 5,519-line PowerShell script has been successfully transformed into a **modular**, **high-performance** security monitoring solution that maintains the PowerShell ecosystem while adding significant enhancements. This enhanced solution successfully transforms the original monolithic PowerShell script into a modern, modular, and highly capable security monitoring platform.
+The original 5,519-line PowerShell script has been enhanced into a **high-performance** security monitoring solution while maintaining the PowerShell ecosystem. Although still a single script, it incorporates significant improvements in modularity and functionality.
 
 ## ✨ Key Features
 
